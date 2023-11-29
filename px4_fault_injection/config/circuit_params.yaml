@@ -1,0 +1,58 @@
+boundaries:
+  north_south:
+    lower: -5.0
+    upper: 5.0
+  east_west:
+    lower: -5.0
+    upper: 5.0
+  altitude:
+    lower: -2.0
+    upper: -5.0
+  yaw:
+    lower: -180
+    upper: 180
+number_of_waypoints:
+  lower: 1
+  upper: 5
+iterations: 7
+sensors:
+  - module_name: "accelerometer"
+    fault_active: False
+    record: True
+    data_type: px4_msgs.msg/SensorAccel
+    topic_name: "/fmu/out/sensor_accel"
+    fault_vals:
+      gaussian_noise: 0.0
+      bias_shift: 0.0
+      bias_scale: 0.0
+      drift: 0.0
+  - module_name: "gyroscope"
+    fault_active: False
+    record: True
+    data_type: px4_msgs.msg/SensorGyro
+    topic_name: "/fmu/out/sensor_gyro"
+    fault_vals:
+      gaussian_noise: 0.0
+      bias_shift: 0.0
+      bias_scale: 0.0
+      drift: 0.0
+  - module_name: "magnetometer"
+    fault_active: False
+    record: True
+    data_type: px4_msgs.msg/SensorMag
+    topic_name: "/fmu/out/sensor_mag"
+    fault_vals:
+      gaussian_noise: 0.0
+      bias_shift: 0.0
+      bias_scale: 0.0
+      drift: 0.0
+  - module_name: "barometer"
+    fault_active: False
+    record: True
+    data_type: px4_msgs.msg/SensorBaro
+    topic_name: "/fmu/out/sensor_baro"
+    fault_vals:
+      gaussian_noise: 0.0
+      bias_shift: 0.0
+      bias_scale: 0.0
+      drift: 0.0
