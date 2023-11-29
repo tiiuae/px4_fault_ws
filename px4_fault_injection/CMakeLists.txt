@@ -22,6 +22,7 @@ install(PROGRAMS
   scripts/circuit_recorder.py
   scripts/sensor_recorder_unsync.py
   scripts/data_merger_service.py
+  scripts/fault_injectors.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

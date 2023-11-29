@@ -23,8 +23,7 @@ class SensorRecorder(Node):
     def __init__(self) -> None:
         super().__init__('sensor_recorder')
         
-        self.folder_name = ""
-
+        # EXPAND ___________________
         self.sensor_subs = {
             "accelerometer": None,
             "gyroscope": None,
@@ -55,8 +54,9 @@ class SensorRecorder(Node):
             "magnetometer": SensorMag,
             "barometer": SensorBaro,
         }
+        #_______________________________
 
-        self.ts = None
+        self.folder_name = ""
         self.mission_params = {}
         self.recording = False
         self.prev_record = -1
@@ -147,7 +147,8 @@ class SensorRecorder(Node):
                                                                                     sensors["topic_name"],
                                                                                     self.sub_callbacks[sensors['module_name']],
                                                                                     self.qos_profile)
-                
+
+    #____________________________________________
     def accel_callback(self, msg: SensorAccel):
         if not self.active_sensors["accelerometer"]:
             return
@@ -183,7 +184,7 @@ class SensorRecorder(Node):
         else:
             row = self._csv_string_to_list(message_to_csv(msg))
             self.sensor_csvs["barometer"].writerow(row)
-    
+    #____________________________________________
 
 def main(args=None) -> None:
     print('Starting sensor_recorder node...')

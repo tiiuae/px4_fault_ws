@@ -22,37 +22,37 @@ sensors:
     data_type: px4_msgs.msg/SensorAccel
     topic_name: "/fmu/out/sensor_accel"
     fault_vals:
-      gaussian_noise: 0.0
-      bias_shift: 0.0
-      bias_scale: 0.0
-      drift: 0.0
+      gaussian_noise: [0.0, 0.0]
+      bias_shift: [0.0, 0.0]
+      bias_scale: [0.0, 0.0]
+      drift: [0.0, 0.0]
   - module_name: "gyroscope"
     fault_active: False
     record: True
     data_type: px4_msgs.msg/SensorGyro
     topic_name: "/fmu/out/sensor_gyro"
     fault_vals:
-      gaussian_noise: 0.0
-      bias_shift: 0.0
-      bias_scale: 0.0
-      drift: 0.0
+      gaussian_noise: [0.0, 0.0]
+      bias_shift: [0.0, 0.0]
+      bias_scale: [0.0, 0.0]
+      drift: [0.0, 0.0]
   - module_name: "magnetometer"
     fault_active: False
     record: True
     data_type: px4_msgs.msg/SensorMag
     topic_name: "/fmu/out/sensor_mag"
     fault_vals:
-      gaussian_noise: 0.0
-      bias_shift: 0.0
-      bias_scale: 0.0
-      drift: 0.0
+      gaussian_noise: [0.0, 0.0]
+      bias_shift: [0.0, 0.0]
+      bias_scale: [0.0, 0.0]
+      drift: [0.0, 0.0]
   - module_name: "barometer"
     fault_active: False
     record: True
     data_type: px4_msgs.msg/SensorBaro
     topic_name: "/fmu/out/sensor_baro"
     fault_vals:
-      gaussian_noise: 0.0
-      bias_shift: 0.0
-      bias_scale: 0.0
-      drift: 0.0
+      gaussian_noise: [0.0, 0.0]
+      bias_shift: [0.0, 0.0]
+      bias_scale: [0.0, 0.0]
+      drift: [0.0, 0.0]
