@@ -32,12 +32,14 @@ class FaultInjectors(Node):
             "drift": "DRIFT"
         }
 
-        self.srv = self.create_service(SetBool, 'inject_fault', self.fault_callback)
+        self.srv = self.create_service(
+            SetBool, 'inject_fault', self.fault_callback)
 
     def fault_callback(self, request, response):
         response.success = False
 
-        config_path = get_package_share_directory("px4_fault_injection") + "/config/circuit_params.yaml"
+        config_path = get_package_share_directory("px4_fault_injection") +\
+            "/config/circuit_params.yaml"
         try:
             with open(config_path, 'r') as yaml_file:
                 mission_params = yaml.safe_load(yaml_file)
@@ -45,17 +47,16 @@ class FaultInjectors(Node):
             self.get_logger().error(f"Error reading YAML file: {e}.")
 
         if request.data:
-            asyncio.run(self.activate_faults())
+            asyncio.run(self.activate_faults(mission_params))
         else:
-            asyncio.run(self.deactivate_faults())
-        
+            asyncio.run(self.deactivate_faults(mission_params))
         response.success = True
         return response
-    
+
     async def activate_faults(self, mission_params):
         drone = System()
         await drone.connect(system_address="udp://:14540")
-        
+
         self.get_logger().info("Waiting for drone to connect...")
         async for state in drone.core.connection_state():
             if state.is_connected:
@@ -70,19 +71,21 @@ class FaultInjectors(Node):
 
         for sensor in mission_params['sensors']:
             if sensor['fault_active']:
-                self.drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] + "FAULT",
-                                               1)
+                await drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] + "FAULT",
+                                          1)
                 for key in list(sensor['fault_vals'].keys()):
-                    random_value = random.random()*(sensor['fault_vals'][key][1] - sensor['fault_vals'][key][0]) + sensor['fault_vals'][key][0]
-                    self.drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] +\
-                                                   self.sensor_fault_type[key],
-                                                   random_value)
+                    random_value = random.random() * \
+                        (sensor['fault_vals'][key][1] - sensor['fault_vals']
+                         [key][0]) + sensor['fault_vals'][key][0]
+                    await drone.param.set_param_float(self.sensor_fault_switch[sensor['module_name']] +
+                                              self.sensor_fault_type[key],
+                                              random_value)
         return
-    
+
     async def deactivate_faults(self, mission_params):
         drone = System()
         await drone.connect(system_address="udp://:14540")
-        
+
         self.get_logger().info("Waiting for drone to connect...")
         async for state in drone.core.connection_state():
             if state.is_connected:
@@ -97,12 +100,13 @@ class FaultInjectors(Node):
 
         for sensor in mission_params['sensors']:
             for key in list(sensor['fault_vals'].keys()):
-                self.drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] +\
-                                                self.sensor_fault_type[key],
-                                                0)
-            self.drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] + "FAULT",
+                await drone.param.set_param_float(self.sensor_fault_switch[sensor['module_name']] +
+                                          self.sensor_fault_type[key],
+                                          0)
+            await drone.param.set_param_int(self.sensor_fault_switch[sensor['module_name']] + "FAULT",
                                             0)
         return
+
 
 def main(args=None) -> None:
     print('Starting fault_injector node...')
@@ -112,7 +116,7 @@ def main(args=None) -> None:
         rclpy.spin(fault_injector)
     except KeyboardInterrupt:
         pass
-    
+
     try:
         rclpy.shutdown()
     except Exception as e:

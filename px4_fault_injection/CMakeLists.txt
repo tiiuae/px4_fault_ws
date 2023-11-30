@@ -11,6 +11,7 @@ find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(px4_custom_interfaces REQUIRED)
 
 include_directories(include)

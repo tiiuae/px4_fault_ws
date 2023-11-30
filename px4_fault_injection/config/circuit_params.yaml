@@ -17,12 +17,12 @@ number_of_waypoints:
 iterations: 7
 sensors:
   - module_name: "accelerometer"
-    fault_active: False
+    fault_active: True
     record: True
     data_type: px4_msgs.msg/SensorAccel
     topic_name: "/fmu/out/sensor_accel"
     fault_vals:
-      gaussian_noise: [0.0, 0.0]
+      gaussian_noise: [-0.1, 0.1]
       bias_shift: [0.0, 0.0]
       bias_scale: [0.0, 0.0]
       drift: [0.0, 0.0]

@@ -24,7 +24,7 @@ class CircuitRecorder(Node):
 
     def __init__(self) -> None:
         super().__init__('circuit_recorder')
-        
+
         self.folder_name = ""
         self.subscribers = []
         self.msg_types = []
@@ -34,7 +34,7 @@ class CircuitRecorder(Node):
         self.data_csvs = []
         self.recording = False
         self.prev_record = -1
-
+        
         self.cli = self.create_client(MergeTarget, 'merge_target')
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
