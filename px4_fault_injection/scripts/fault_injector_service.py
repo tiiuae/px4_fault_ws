@@ -13,12 +13,12 @@ from mavsdk import System
 from px4_msgs.msg import *
 
 
-class FaultInjectors(Node):
+class FaultInjectorService(Node):
 
     SLEEP_TIME = 5
 
     def __init__(self):
-        super().__init__('fault_injector')
+        super().__init__('fault_injector_service')
         self.sensor_fault_switch = {
             "accelerometer": "SENS_ACCEL_",
             "gyroscope": "SENS_GYRO_",
@@ -109,11 +109,11 @@ class FaultInjectors(Node):
 
 
 def main(args=None) -> None:
-    print('Starting fault_injector node...')
+    print('Starting fault_injector_service node...')
     rclpy.init(args=args)
     try:
-        fault_injector = FaultInjectors()
-        rclpy.spin(fault_injector)
+        fault_injector_service = FaultInjectorService()
+        rclpy.spin(fault_injector_service)
     except KeyboardInterrupt:
         pass
 
