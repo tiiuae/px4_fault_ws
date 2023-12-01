@@ -24,7 +24,8 @@ install(PROGRAMS
   scripts/sensor_recorder_unsync.py
   scripts/data_merger_service.py
   scripts/fault_injector_service.py
-  scripts/fault_injector_manager.py
+  scripts/fault_injection_manager.py
+  scripts/drone_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

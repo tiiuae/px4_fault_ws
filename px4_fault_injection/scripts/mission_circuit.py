@@ -8,12 +8,13 @@ import yaml
 
 import rclpy
 from rclpy.node import Node
+from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
 
 from mavsdk import System
 from mavsdk.offboard import OffboardError, PositionNedYaw
 from px4_msgs.msg import *
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Empty, Float32MultiArray, String
 from io import StringIO
 
 
@@ -23,7 +24,7 @@ class MissionCircuit(Node):
 
     def __init__(self) -> None:
         super().__init__('mission_circuit')
-        
+
         self.folder_name = ""
         self.waypoints = []
         self.mission_params = {}
@@ -32,10 +33,16 @@ class MissionCircuit(Node):
         self._init_mission_params()
         self._create_pub_sub()
         self._generate_mission()
-        asyncio.run(self._run())
+        self._run()
 
     def _create_pub_sub(self) -> None:
-        self.record_pub = self.create_publisher(Int8, "/mission_circuit/record",1)
+        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME*2))
+        self.record_pub = self.create_publisher(Int8, "/mission_circuit/record",10)
+        self.activate_pub = self.create_publisher(Empty, "/drone_controller/activate", 10)
+        self.deactivate_pub = self.create_publisher(Empty, "/drone_controller/deactivate", 10)
+        self.move_pub = self.create_publisher(Float32MultiArray, "/drone_controller/move_drone_NEDY", 10)
+        self.param_float_pub = self.create_publisher(String, "/drone_controller/set_param_float", 10)
+        self.param_int_pub = self.create_publisher(String, "/drone_controller/set_param_int", 10)
         return
 
     def _start_record(self, record_id):
@@ -124,60 +131,24 @@ class MissionCircuit(Node):
 
         return points
     
-    async def _point_generator(self, points) -> None:
-        for point in points:
-            self.get_logger().info(str(point))
-            yield point
-            await asyncio.sleep(MissionCircuit.SLEEP_TIME)
+    def _run(self) -> None:
 
-    async def _run(self) -> None:
-
-        drone = System()
-        await drone.connect(system_address="udp://:14540")
-        
-        self.get_logger().info("Waiting for drone to connect...")
-        async for state in drone.core.connection_state():
-            if state.is_connected:
-                print(f"Connected to drone!")
-                break
-
-        self.get_logger().info("Waiting for drone to have a global position estimate...")
-        async for health in drone.telemetry.health():
-            if health.is_global_position_ok and health.is_home_position_ok:
-                self.get_logger().info("Global position estimate OK")
-                break
-
-        self.get_logger().info("Arming")
-        await drone.action.arm()
-        self.get_logger().info("Setting initial setpoint")
-        await drone.offboard.set_position_ned(PositionNedYaw(0.0, 0.0, 0.0, 0.0))
-
-        self.get_logger().info("Starting offboard")
-        try:
-            await drone.offboard.start()
-        except OffboardError as error:
-            self.get_logger().error(f"Starting offboard mode failed with error code: {error._result.result}")
-            self.get_logger().error("Disarming")
-            await drone.action.disarm()
-            return
+        self.activate_pub.publish(Empty())
+        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
 
         for i in range(len(self.waypoints)):
-            print(f"currently running {self.waypoints[i]}")
             self._start_record(i)
-            await asyncio.sleep(MissionCircuit.SLEEP_TIME)
-            async for point in self._point_generator(self.waypoints[i]):
-                await drone.offboard.set_position_ned(PositionNedYaw(point[0], point[1], point[2], point[3]))
+            self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
+            for point in self.waypoints[i]:
+                pos = Float32MultiArray()
+                pos.data = point
+                self.move_pub.publish(pos)
+                self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
+
             self._end_record(-1)
 
         self.get_logger().info("Stopping offboard")
-        try:
-            await drone.offboard.stop()
-        except OffboardError as error:
-            self.get_logger().error(f"Stopping offboard mode failed with error code: {error._result.result}")
-
-        await drone.action.land()
-        await asyncio.sleep(10)
-        await drone.action.disarm()
+        self.deactivate_pub.publish(Empty())
         return
 
 def main(args=None) -> None:
