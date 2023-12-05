@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import asyncio
 import csv
 import os
 import random
@@ -11,9 +10,6 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 from ament_index_python.packages import get_package_share_directory
 
-from mavsdk import System
-from mavsdk.offboard import OffboardError, PositionNedYaw
-from px4_msgs.msg import *
 from std_msgs.msg import Int8, Empty, Float32MultiArray, String
 from io import StringIO
 
@@ -36,8 +32,8 @@ class MissionCircuit(Node):
         self._run()
 
     def _create_pub_sub(self) -> None:
-        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME*2))
-        self.record_pub = self.create_publisher(Int8, "/mission_circuit/record",10)
+        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME * 2))
+        self.record_pub = self.create_publisher(Int8, "/mission_circuit/record", 10)
         self.activate_pub = self.create_publisher(Empty, "/drone_controller/activate", 10)
         self.deactivate_pub = self.create_publisher(Empty, "/drone_controller/deactivate", 10)
         self.move_pub = self.create_publisher(Float32MultiArray, "/drone_controller/move_drone_NEDY", 10)
@@ -94,7 +90,7 @@ class MissionCircuit(Node):
             self.get_logger().error(f"Error reading YAML file: {e}.")
 
     def _generate_random_path(self, num_points) -> None:
-        points = [[0.0,0.0,-0.1,0.0]] + self._generate_random_points(num_points)
+        points = [[0.0, 0.0, -0.1, 0.0]] + self._generate_random_points(num_points)
         points = self._nearest_neighbour_path(points)
         points.append(points[0])
         return points
@@ -130,7 +126,7 @@ class MissionCircuit(Node):
             points.append([x, y, altitude, yaw])
 
         return points
-    
+
     def _run(self) -> None:
 
         self.activate_pub.publish(Empty())
@@ -138,18 +134,29 @@ class MissionCircuit(Node):
 
         for i in range(len(self.waypoints)):
             self._start_record(i)
+
+            f_string = f"\nCurrent Circuit {i}:\n"
+            for point in self.waypoints[i]:
+                f_string += f"- [{round(point[0], 4)}, {round(point[1], 4)}, {round(point[2], 4)}, {round(point[3],4)}]\n"
+
+            self.get_logger().warning(f_string)
+
             self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
             for point in self.waypoints[i]:
+                self.get_logger().info(f"Going to: [{round(point[0], 4)}, {round(point[1], 4)}, {round(point[2], 4)}, {round(point[3],4)}]")
                 pos = Float32MultiArray()
                 pos.data = point
                 self.move_pub.publish(pos)
                 self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
 
+            self.get_logger().warning(f"End of Circuit {i}")
             self._end_record(-1)
+            self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
 
         self.get_logger().info("Stopping offboard")
         self.deactivate_pub.publish(Empty())
         return
+
 
 def main(args=None) -> None:
     print('Starting mission_circuit node...')

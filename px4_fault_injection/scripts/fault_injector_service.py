@@ -38,7 +38,7 @@ class FaultInjectorService(Node):
                 self.mission_params = yaml.safe_load(yaml_file)
         except yaml.YAMLError as e:
             self.get_logger().error(f"Error reading YAML file: {e}.")
-        
+
         self.srv = self.create_service(
             SetBool, 'inject_fault', self.fault_callback)
         self.param_float_pub = self.create_publisher(String, "/drone_controller/set_param_float", 1)
@@ -69,12 +69,13 @@ class FaultInjectorService(Node):
 
     def deactivate_faults(self):
         for sensor in self.mission_params['sensors']:
-            for key in list(sensor['fault_vals'].keys()):
-                sending = f"{self.sensor_fault_switch[sensor['module_name']]}{self.sensor_fault_type[key]}/{0}"
-                self.param_float_pub.publish(String(data=sending))
+            if sensor['fault_active']:
+                for key in list(sensor['fault_vals'].keys()):
+                    sending = f"{self.sensor_fault_switch[sensor['module_name']]}{self.sensor_fault_type[key]}/{0}"
+                    self.param_float_pub.publish(String(data=sending))
 
-            sending = f"{self.sensor_fault_switch[sensor['module_name']]}FAULT/{0}"
-            self.param_int_pub.publish(String(data=sending))
+                sending = f"{self.sensor_fault_switch[sensor['module_name']]}FAULT/{0}"
+                self.param_int_pub.publish(String(data=sending))
 
         return
 

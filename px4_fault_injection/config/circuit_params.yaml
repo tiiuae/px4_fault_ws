@@ -13,8 +13,8 @@ boundaries:
     upper: 180
 number_of_waypoints:
   lower: 1
-  upper: 5
-iterations: 7
+  upper: 3
+iterations: 2
 sensors:
   - module_name: "accelerometer"
     fault_active: True

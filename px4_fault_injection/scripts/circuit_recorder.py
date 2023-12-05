@@ -34,7 +34,7 @@ class CircuitRecorder(Node):
         self.data_csvs = []
         self.recording = False
         self.prev_record = -1
-        
+
         self.cli = self.create_client(MergeTarget, 'merge_target')
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
@@ -63,7 +63,7 @@ class CircuitRecorder(Node):
             self.get_logger().warning(f"Directory '{self.folder_name}' created successfully.")
         else:
             self.get_logger().info(f"Directory '{self.folder_name}' already exists.")
-    
+
     def _start_record(self, record_id):
         for i in range(len(self.subscribers)):
             self.data_csvs.append(csv.writer(open(f"{self.folder_name}/iteration_{record_id}/{self.active_sensors[i]}.csv", mode='w', newline='')))
@@ -72,12 +72,12 @@ class CircuitRecorder(Node):
             for key in list(empty_msg_dict.keys()):
                 try:
                     for j in range(len(empty_msg_dict[key])):
-                        header.append(key+f"_{j}")
+                        header.append(key + f"_{j}")
                 except TypeError:
                     header.append(key)
             self.data_csvs[i].writerow(header)
             self.prev_record = record_id
-    
+
     def _end_record(self, record_id):
         if self.recording:
             request = MergeTarget.Request()
@@ -94,7 +94,7 @@ class CircuitRecorder(Node):
         row_list = next(csv_reader, [])
 
         return row_list
-    
+
     def callback(self, *args):
         if self.recording:
             for i in range(len(args)):
@@ -102,7 +102,7 @@ class CircuitRecorder(Node):
                 self.data_csvs[i].writerow(row)
         else:
             return
-        
+
     def record_update(self, msg: Int8):
         if msg.data < 0:
             self._end_record(msg.data)
@@ -135,6 +135,7 @@ class CircuitRecorder(Node):
         self.ts = message_filters.ApproximateTimeSynchronizer(self.subscribers, 10, slop=10, allow_headerless=True)
         self.ts.registerCallback(self.callback)
 
+
 def main(args=None) -> None:
     print('Starting circuit_recorder node...')
     rclpy.init(args=args)
@@ -143,11 +144,13 @@ def main(args=None) -> None:
         rclpy.spin(circuit_recorder)
     except KeyboardInterrupt:
         pass
-    
+
     try:
         rclpy.shutdown()
     except Exception as e:
+        print(e)
         pass
+
 
 if __name__ == '__main__':
     main()

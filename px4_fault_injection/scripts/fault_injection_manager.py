@@ -5,10 +5,8 @@ import os
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 import random
 
-from rosidl_runtime_py import message_to_ordereddict, message_to_csv
 from std_msgs.msg import Int8
 from std_srvs.srv import SetBool
 from io import StringIO
@@ -45,6 +43,7 @@ class FaultInjectionManager(Node):
         self.future = self.cli.call_async(request)
         self.get_logger().warning(f"Set fault to {state}")
         return self.future.result()
+        # return True
 
     def iter_trigger_callback(self, msg):
         if not self.faulty_runs:
@@ -53,6 +52,7 @@ class FaultInjectionManager(Node):
 
         self.iter_active = msg.data > -1
         if msg.data == -1:
+            self.get_logger().warning("On circuit end. Removing Faults.")
             self.send_request(False)
         return
 
