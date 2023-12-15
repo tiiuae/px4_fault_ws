@@ -26,6 +26,9 @@ class FaultInjectionManager(Node):
         self.iter_active = False
         self.faulty_runs = False
         self.fault_active = False
+        self.faulty_sensors = []
+        self.iteration = 0
+        self.dump_string = ''
 
         self._init_mission_params()
         self._create_directory()
@@ -54,6 +57,24 @@ class FaultInjectionManager(Node):
         if msg.data == -1:
             self.get_logger().warning("On circuit end. Removing Faults.")
             self.send_request(False)
+
+            self.dump_string += f'{int(self.get_clock().now().nanoseconds / 1000)},'
+            self.dump_string += f'{0},'
+            self.dump_string += f'{",".join(self.faulty_sensors)}\n'
+            self.dump_data()
+            self.dump_string = ''
+            self.iteration += 1
+        return
+
+    def dump_data(self):
+        self.header = ['timestamp', 'fault_active']
+        self.header += ['faulty_sensors']*len(self.faulty_sensors)
+        self.header = ','.join(self.header) + '\n'
+        self.header += self.dump_string
+
+        with open(f'{self.folder_name}/iteration_{self.iteration}/faults.csv', 'w') as f:
+            f.write(self.header)
+        
         return
 
     def timer_callback(self):
@@ -62,10 +83,17 @@ class FaultInjectionManager(Node):
 
         if self.iter_active:
             trigger = random.randint(0, 100)
-            if trigger > 50 and not self.fault_active:
+            bias = 70
+            if trigger > bias and not self.fault_active:
                 self.send_request(True)
-            elif trigger <= 50 and self.fault_active:
+                self.dump_string += f'{int(self.get_clock().now().nanoseconds / 1000)},'
+                self.dump_string += f'{1},'
+                self.dump_string += f'{",".join(self.faulty_sensors)}\n'
+            elif trigger <= 100 - bias and self.fault_active:
                 self.send_request(False)
+                self.dump_string += f'{int(self.get_clock().now().nanoseconds / 1000)},'
+                self.dump_string += f'{0},'
+                self.dump_string += f'{",".join(self.faulty_sensors)}\n'
             else:
                 return
         else:
@@ -82,7 +110,9 @@ class FaultInjectionManager(Node):
 
         for sensor in self.mission_params['sensors']:
             if sensor['fault_active']:
-                self.faulty_runs = True
+                if not self.faulty_runs:
+                    self.faulty_runs = True
+                self.faulty_sensors.append(sensor['module_name'])
 
     def _create_directory(self) -> None:
         dir_name = self.get_clock().now().seconds_nanoseconds()[0] / 100

@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 
 from mavsdk import System
+from mavsdk.param import ParamError
 from mavsdk.offboard import OffboardError, PositionNedYaw
 from std_msgs.msg import String, Empty, Float32MultiArray
 
@@ -14,18 +15,23 @@ class DroneController(Node):
 
     def __init__(self):
         super().__init__('drone_controller')
-        self.drone = System()
+        self.done = None
 
         self.loop = asyncio.get_event_loop()
-        self.loop.run_until_complete(self._initialise_drone())
 
+        self.initialise_sub = self.create_subscription(Empty, "/drone_controller/initialise", self.initialise_drone, 10)
         self.activate_sub = self.create_subscription(Empty, "/drone_controller/activate", self.activate_drone, 10)
         self.deactivate_sub = self.create_subscription(Empty, "/drone_controller/deactivate", self.deactivate_drone, 10)
         self.move_sub = self.create_subscription(Float32MultiArray, "/drone_controller/move_drone_NEDY", self.go_to_positionNEDYaw, 10)
         self.param_float_sub = self.create_subscription(String, "/drone_controller/set_param_float", self.set_param_float, 20)
         self.param_int_sub = self.create_subscription(String, "/drone_controller/set_param_int", self.set_param_int, 20)
 
+    def initialise_drone(self, msg):
+        self.loop.run_until_complete(self._initialise_drone())
+        return
+
     async def _initialise_drone(self):
+        self.drone = System()
         await self.drone.connect(system_address="udp://:14540")
 
         self.get_logger().info("Waiting for drone to connect...")
@@ -60,6 +66,8 @@ class DroneController(Node):
             self.get_logger().error("Disarming")
             await self.drone.action.disarm()
             return
+           
+        await self.drone.offboard.set_position_ned(PositionNedYaw(0.0, 0.0, -2.5, 0.0))
         self.get_logger().warning("Drone activated")
 
     def deactivate_drone(self, msg):
@@ -94,7 +102,10 @@ class DroneController(Node):
         self.get_logger().error(f"set {string} to {value}")
 
     async def _set_param_float(self, string, value):
-        await self.drone.param.set_param_float(string, value)
+        try:
+            await self.drone.param.set_param_float(string, value)
+        except ParamError as e:
+            self.get_logger().error("Param cannot be set at current moment")
 
     def set_param_int(self, msg: String):
         string, value = msg.data.split('/')
@@ -102,7 +113,10 @@ class DroneController(Node):
         self.get_logger().error(f"set {string} to {value}")
 
     async def _set_param_int(self, string, value):
-        await self.drone.param.set_param_int(string, value)
+        try:
+            await self.drone.param.set_param_int(string, value)
+        except ParamError as e:
+            self.get_logger().error("Param cannot be set at current moment")
 
 
 def main(args=None) -> None:

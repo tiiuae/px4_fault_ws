@@ -26,6 +26,10 @@ install(PROGRAMS
   scripts/fault_injector_service.py
   scripts/fault_injection_manager.py
   scripts/drone_controller.py
+  scripts/simulation_manager.py
+  scripts/iteration_runner.py
+  scripts/drone_state_monitor.py
+  scripts/dual_subscriber.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

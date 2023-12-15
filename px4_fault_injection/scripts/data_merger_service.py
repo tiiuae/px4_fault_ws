@@ -6,6 +6,7 @@ from rclpy.node import Node
 import os
 import pandas as pd
 
+
 class DataMergerService(Node):
 
     def __init__(self):
@@ -24,7 +25,7 @@ class DataMergerService(Node):
         df_result = pd.read_csv(os.path.join(request.directory.data, csv_files[0]))
         initial = os.path.splitext(csv_files[0])[0]  # Extract the base name without the extension
         initial = f"_{initial}"
-        
+
         first_run = True
         # Iterate through the remaining CSV files and perform inner join
         for csv_file in csv_files[1:]:
@@ -34,9 +35,15 @@ class DataMergerService(Node):
             else:
                 initial = ''
             current = os.path.splitext(csv_file)[0]  # Extract the base name without the extension
-            df_result = pd.merge(df_result, df_current, how='outer', on='timestamp', 
+            df_result = pd.merge(df_result, df_current, how='outer', on='timestamp',
                                 suffixes=(f'{initial}', f'_{current}'))
 
+        df_result.sort_values(by='timestamp', inplace=True)
+        # df_result.interpolate(method='linear', inplace=True)
+
+        # # Fill NaN values at the edges
+        # df_result.ffill(inplace=True)  # Forward fill
+        # df_result.bfill(inplace=True)  # Backward fill
         # Specify the output CSV file path
         output_csv_path = f'{request.directory.data}/merged.csv'
 
@@ -55,12 +62,13 @@ def main(args=None) -> None:
         rclpy.spin(data_merger_service)
     except KeyboardInterrupt:
         pass
-    
     try:
         rclpy.shutdown()
     except Exception as e:
+        print(e)
         pass
 
 
 if __name__ == '__main__':
     main()
+

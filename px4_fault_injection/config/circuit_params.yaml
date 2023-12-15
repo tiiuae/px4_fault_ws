@@ -13,7 +13,7 @@ boundaries:
     upper: 180
 number_of_waypoints:
   lower: 1
-  upper: 3
+  upper: 6
 iterations: 2
 sensors:
   - module_name: "accelerometer"
@@ -22,10 +22,10 @@ sensors:
     data_type: px4_msgs.msg/SensorAccel
     topic_name: "/fmu/out/sensor_accel"
     fault_vals:
-      gaussian_noise: [-0.1, 0.1]
+      gaussian_noise: [0.0, 0.0]
       bias_shift: [0.0, 0.0]
       bias_scale: [0.0, 0.0]
-      drift: [0.0, 0.0]
+      drift: [0.0, 1.0]
   - module_name: "gyroscope"
     fault_active: False
     record: True

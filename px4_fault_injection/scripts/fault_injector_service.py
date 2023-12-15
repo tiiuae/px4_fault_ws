@@ -76,7 +76,6 @@ class FaultInjectorService(Node):
 
                 sending = f"{self.sensor_fault_switch[sensor['module_name']]}FAULT/{0}"
                 self.param_int_pub.publish(String(data=sending))
-
         return
 
 
