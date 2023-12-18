@@ -19,6 +19,8 @@ include_directories(include)
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
+  scripts/accelerometer_fault_injector_gui.py
+  scripts/gyroscope_fault_injector_gui.py
   scripts/mission_circuit.py
   scripts/circuit_recorder.py
   scripts/sensor_recorder_unsync.py
@@ -29,7 +31,8 @@ install(PROGRAMS
   scripts/simulation_manager.py
   scripts/iteration_runner.py
   scripts/drone_state_monitor.py
-  scripts/dual_subscriber.py
+  scripts/mission_manager.py
+  scripts/test.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

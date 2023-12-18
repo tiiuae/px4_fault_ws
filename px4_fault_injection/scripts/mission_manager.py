@@ -13,10 +13,10 @@ from ament_index_python.packages import get_package_share_directory
 import yaml
 
 
-class DualSubscriber(Node):
+class MissionManager(Node):
 
     def __init__(self):
-        super().__init__('dual_subscriber')
+        super().__init__('mission_manager')
 
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.folder_name = ""
@@ -37,7 +37,6 @@ class DualSubscriber(Node):
         self.iteration_msg = None
 
         self.create_timer(5, self.timer_callback)
-
 
     def update(self, iteration_msg=None, simulation_msg=None) -> None:
         if iteration_msg is not None:
@@ -175,16 +174,16 @@ class DualSubscriber(Node):
 
 
 def main(args=None):
+    print('Starting mission_manager node...')
     rclpy.init(args=args)
 
-    dual_subscriber = DualSubscriber()
+    mission_manager = MissionManager()
 
     try:
-        rclpy.spin(dual_subscriber)
+        rclpy.spin(mission_manager)
     except KeyboardInterrupt:
         pass
     finally:
-        dual_subscriber.destroy_node()
         rclpy.shutdown()
 
 

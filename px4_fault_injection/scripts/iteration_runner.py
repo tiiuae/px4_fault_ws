@@ -8,6 +8,7 @@ from std_msgs.msg import Float32MultiArray, String
 import numpy as np
 import threading
 
+
 class IterationRunner(Node):
 
     SLEEP_TIME = 5.0
@@ -44,7 +45,7 @@ class IterationRunner(Node):
             if self.stop_thread_event.is_set():
                 self.state_pub.publish(String(data='PREEMPTED'))
                 return
-            else:            
+            else:
                 self.get_logger().info(f"Going to: [{round(point[0], 4)}, {round(point[1], 4)}, {round(point[2], 4)}, {round(point[3],4)}]")
                 pos = Float32MultiArray()
                 pos.data = point
@@ -54,11 +55,12 @@ class IterationRunner(Node):
 
         self.state_pub.publish(String(data='COMPLETED'))
         return
-    
+
     def sim_state_callback(self, msg: String) -> None:
         if msg.data != 'ACTIVE':
             # If the simulation is not active, signal the waypoint thread to stop
             self.stop_thread_event.set()
+
 
 def main(args=None) -> None:
     print('Starting iteration_runner node...')
@@ -70,6 +72,7 @@ def main(args=None) -> None:
         pass
     finally:
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

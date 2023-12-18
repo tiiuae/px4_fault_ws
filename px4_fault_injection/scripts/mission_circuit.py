@@ -32,8 +32,9 @@ class MissionCircuit(Node):
         self._run()
 
     def _create_pub_sub(self) -> None:
-        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME * 2))
+        self.get_clock().sleep_for(Duration(seconds = self.SLEEP_TIME * 2))
         self.record_pub = self.create_publisher(Int8, "/mission_circuit/record", 10)
+        self.initialise_pub = self.create_publisher(Empty, "/drone_controller/initialise", 10)
         self.activate_pub = self.create_publisher(Empty, "/drone_controller/activate", 10)
         self.deactivate_pub = self.create_publisher(Empty, "/drone_controller/deactivate", 10)
         self.move_pub = self.create_publisher(Float32MultiArray, "/drone_controller/move_drone_NEDY", 10)
@@ -129,6 +130,8 @@ class MissionCircuit(Node):
 
     def _run(self) -> None:
 
+        self.initialise_pub.publish(Empty())
+        self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME*2))
         self.activate_pub.publish(Empty())
         self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
 
