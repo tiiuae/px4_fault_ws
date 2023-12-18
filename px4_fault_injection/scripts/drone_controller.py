@@ -105,7 +105,7 @@ class DroneController(Node):
         try:
             await self.drone.param.set_param_float(string, value)
         except ParamError as e:
-            self.get_logger().error("Param cannot be set at current moment")
+            self.get_logger().error(f"Param cannot be set at current moment with exception {e}")
 
     def set_param_int(self, msg: String):
         string, value = msg.data.split('/')
@@ -116,7 +116,7 @@ class DroneController(Node):
         try:
             await self.drone.param.set_param_int(string, value)
         except ParamError as e:
-            self.get_logger().error("Param cannot be set at current moment")
+            self.get_logger().error(f"Param cannot be set at current moment with exception {e}")
 
 
 def main(args=None) -> None:
@@ -137,4 +137,3 @@ def main(args=None) -> None:
 
 if __name__ == '__main__':
     main()
-

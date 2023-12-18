@@ -4,12 +4,14 @@ import rclpy
 import csv
 import os
 import random
+import numpy as np
 
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32MultiArray
 from ament_index_python.packages import get_package_share_directory
 import yaml
+
 
 class DualSubscriber(Node):
 
@@ -20,26 +22,83 @@ class DualSubscriber(Node):
         self.folder_name = ""
         self.waypoints = []
         self.mission_params = {}
-        self.sent = False
         self.current_iteration = 0
+        self.state = 1
 
-        self.subscription1 = self.create_subscription(
-            String,
-            '/gazebo/state',
-            self.listener_callback1,
-            qos)
-        self.subscription2 = self.create_subscription(
-            String,
-            '/iteration/state',
-            self.listener_callback2,
-            qos)
-        self.last_msg_topic1 = None
-        self.last_msg_topic2 = None
-        
+        self.sim_subscriber = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
+        self.iteration_subscriber = self.create_subscription(String, '/iteration/state', self.iteration_callback, qos)
+        self.iteration_pub = self.create_publisher(Float32MultiArray, '/iteration/waypoints', 1)
+
+        self._create_directory()
+        self._init_mission_params()
+        self._generate_mission()
+
+        self.simulation_msg = None
+        self.iteration_msg = None
+
         self.create_timer(5, self.timer_callback)
+
+
+    def update(self, iteration_msg=None, simulation_msg=None) -> None:
+        if iteration_msg is not None:
+            self.iteration_msg = iteration_msg
+
+        if simulation_msg is not None:
+            self.simulation_msg = simulation_msg
+
+        self.process_state()
+
+    def process_state(self):
+        if self.state == 1:
+            self.state_one()
+        elif self.state == 2:
+            self.state_two()
+        elif self.state == 3:
+            self.state_three()
+        elif self.state == 4:
+            self.state_four()
+
+    def state_one(self):
+        self.get_logger().debug("Entering State 1")
+        self.msg_sent = False
+        self.state = 2
+        if self.current_iteration >= len(self.waypoints):
+            self.state = 4
+            return
+        output = Float32MultiArray()
+        output.data = np.array(self.waypoints[self.current_iteration]).reshape(1, -1)[0].tolist()
+        self.iteration_pub.publish(output)
+        self.current_iteration += 1
+
+    def state_two(self):
+        self.get_logger().debug("In State 2")
+        if self.iteration_msg == "COMPLETED":
+            self.state = 1  # Transition to State 1
+            self.msg_sent = True
+        elif self.iteration_msg == "PREEMPTED":
+            self.state = 3  # Transition to State 3
+
+    def state_three(self):
+        self.get_logger().debug("In State 3")
+        if self.simulation_msg == "ACTIVE":
+            self.state = 1  # Transition to State 1
+            self.msg_sent = True
+
+    def state_four(self):
+        self.get_logger().debug("In State 4")
+        return
+
+    def _create_directory(self) -> None:
+        self.folder_name = f"{os.getcwd()}/records/{str(int(self.get_clock().now().seconds_nanoseconds()[0]/100))}"
+        if not os.path.exists(self.folder_name):
+            os.makedirs(self.folder_name)
+            self.get_logger().warning(f"Directory '{self.folder_name}' created successfully.")
+        else:
+            self.get_logger().info(f"Directory '{self.folder_name}' already exists.")
 
     def _init_mission_params(self) -> None:
         config_path = get_package_share_directory("px4_fault_injection") + "/config/circuit_params.yaml"
+
         try:
             with open(config_path, 'r') as yaml_file:
                 self.mission_params = yaml.safe_load(yaml_file)
@@ -84,7 +143,7 @@ class DualSubscriber(Node):
             points.append([x, y, altitude, yaw])
 
         return points
-    
+
     def _nearest_neighbour_path(self, points) -> list:
         if not points:
             return []
@@ -99,29 +158,21 @@ class DualSubscriber(Node):
             remaining_points.remove(nearest)
 
         return path
-    
-    def listener_callback1(self, msg):
-        self.last_msg_topic1 = msg.data
-        self.get_logger().info(f"I heard: {self.last_msg_topic1} from topic1")
 
-    def listener_callback2(self, msg):
-        self.last_msg_topic2 = msg.data
-        self.get_logger().info(f"I heard: {self.last_msg_topic2} from topic2")
+    def sim_state_callback(self, msg):
+        self.simulation_msg = msg.data
+        self.get_logger().info(f"Simulation state is now: {self.simulation_msg}")
+
+    def iteration_callback(self, msg):
+        self.iteration_msg = msg.data
+        self.get_logger().info(f"Current iteration state is now: {self.iteration_msg}")
 
     def timer_callback(self):
-        if self.last_msg_topic1 is None or self.last_msg_topic2 is None:
+        if self.simulation_msg is None or self.iteration_msg is None:
             return
-        
-        if not self.sent:
-            self.sent = True
-        elif self.last_msg_topic2 != "COMPLETED":
-            self.get_logger().error(f"PATH COMPLETED")
-        elif self.last_msg_topic1 != "ACTIVE":
-            self.get_logger().error(f"SIM NOT RUNNING")
-        else:
-            self.sent = False
-            self.get_logger().error(f"NEXT")
-            
+
+        self.update(iteration_msg=self.iteration_msg, simulation_msg=self.simulation_msg)
+
 
 def main(args=None):
     rclpy.init(args=args)
