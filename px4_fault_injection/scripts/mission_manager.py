@@ -5,89 +5,114 @@ import csv
 import os
 import random
 import numpy as np
-
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from rclpy.node import Node
 from std_msgs.msg import String, Float32MultiArray
 from ament_index_python.packages import get_package_share_directory
 import yaml
 
-
 class MissionManager(Node):
+    """
+    MissionManager Node for managing drone missions in a ROS2 environment.
+    Handles the generation, storage, and execution of waypoints for drone navigation.
+    """
 
     def __init__(self):
         super().__init__('mission_manager')
-
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+
+        # Initialization of member variables
         self.folder_name = ""
         self.waypoints = []
         self.mission_params = {}
         self.current_iteration = 0
         self.state = 1
+        self.simulation_msg = None
+        self.iteration_msg = None
 
+        # ROS2 Subscribers and Publisher
         self.sim_subscriber = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
         self.iteration_subscriber = self.create_subscription(String, '/iteration/state', self.iteration_callback, qos)
         self.iteration_pub = self.create_publisher(Float32MultiArray, '/iteration/waypoints', 1)
 
+        # Mission setup
         self._create_directory()
         self._init_mission_params()
         self._generate_mission()
 
-        self.simulation_msg = None
-        self.iteration_msg = None
-
+        # ROS2 Timer
         self.create_timer(5, self.timer_callback)
 
     def update(self, iteration_msg=None, simulation_msg=None) -> None:
+        """
+        Update the current iteration and simulation message.
+        """
         if iteration_msg is not None:
             self.iteration_msg = iteration_msg
-
         if simulation_msg is not None:
             self.simulation_msg = simulation_msg
-
         self.process_state()
 
     def process_state(self):
-        if self.state == 1:
-            self.state_one()
-        elif self.state == 2:
-            self.state_two()
-        elif self.state == 3:
-            self.state_three()
-        elif self.state == 4:
-            self.state_four()
+        """
+        Process the current state of the mission and transition to the next state as needed.
+        """
+        state_actions = {
+            1: self.state_one,
+            2: self.state_two,
+            3: self.state_three,
+            4: self.state_four
+        }
+        state_actions.get(self.state, lambda: None)()
 
     def state_one(self):
+        """
+        State 1: Publish waypoints and transition to the next state.
+        """
         self.get_logger().debug("Entering State 1")
         self.msg_sent = False
         self.state = 2
+
         if self.current_iteration >= len(self.waypoints):
             self.state = 4
             return
+
         output = Float32MultiArray()
         output.data = np.array(self.waypoints[self.current_iteration]).reshape(1, -1)[0].tolist()
         self.iteration_pub.publish(output)
         self.current_iteration += 1
 
     def state_two(self):
+        """
+        State 2: Check the iteration message and transition accordingly.
+        """
         self.get_logger().debug("In State 2")
         if self.iteration_msg == "COMPLETED":
-            self.state = 1  # Transition to State 1
+            self.state = 1
             self.msg_sent = True
         elif self.iteration_msg == "PREEMPTED":
-            self.state = 3  # Transition to State 3
+            self.state = 3
 
     def state_three(self):
+        """
+        State 3: Handle the preempted state based on simulation message.
+        """
         self.get_logger().debug("In State 3")
         if self.simulation_msg == "ACTIVE":
-            self.state = 1  # Transition to State 1
+            self.state = 1
             self.msg_sent = True
 
     def state_four(self):
+        """
+        State 4: Final state, indicating completion.
+        """
         self.get_logger().debug("In State 4")
-        return
-
+        # No further action required
+        
     def _create_directory(self) -> None:
+        """
+        Create a directory to store mission records.
+        """
         self.folder_name = f"{os.getcwd()}/records/{str(int(self.get_clock().now().seconds_nanoseconds()[0]/100))}"
         if not os.path.exists(self.folder_name):
             os.makedirs(self.folder_name)
@@ -96,6 +121,9 @@ class MissionManager(Node):
             self.get_logger().info(f"Directory '{self.folder_name}' already exists.")
 
     def _init_mission_params(self) -> None:
+        """
+        Initialize mission parameters from a configuration file.
+        """
         config_path = get_package_share_directory("px4_fault_injection") + "/config/circuit_params.yaml"
 
         try:
@@ -105,6 +133,9 @@ class MissionManager(Node):
             self.get_logger().error(f"Error reading YAML file: {e}.")
 
     def _generate_mission(self) -> None:
+        """
+        Generate waypoints for the mission.
+        """
         self.waypoints = []
 
         for i in range(self.mission_params['iterations']):
@@ -120,13 +151,19 @@ class MissionManager(Node):
             wr.writerows(self.waypoints)
             self.get_logger().warning(f"Waypoints dumped to {self.folder_name}/waypoints.csv")
 
-    def _generate_random_path(self, num_points) -> None:
+    def _generate_random_path(self, num_points) -> list:
+        """
+        Generate a random path with a specified number of waypoints.
+        """
         points = [[0.0, 0.0, -0.1, 0.0]] + self._generate_random_points(num_points)
         points = self._nearest_neighbour_path(points)
         points.append(points[0])
         return points
 
     def _generate_random_points(self, num_points) -> list:
+        """
+        Generate random points for the path.
+        """
         points = []
 
         ns_bounds = self.mission_params['boundaries']['north_south']
@@ -144,6 +181,9 @@ class MissionManager(Node):
         return points
 
     def _nearest_neighbour_path(self, points) -> list:
+        """
+        Generate a path using the nearest neighbour algorithm.
+        """
         if not points:
             return []
 
@@ -159,14 +199,23 @@ class MissionManager(Node):
         return path
 
     def sim_state_callback(self, msg):
+        """
+        Callback for simulation state updates.
+        """
         self.simulation_msg = msg.data
         self.get_logger().info(f"Simulation state is now: {self.simulation_msg}")
 
     def iteration_callback(self, msg):
+        """
+        Callback for iteration state updates.
+        """
         self.iteration_msg = msg.data
         self.get_logger().info(f"Current iteration state is now: {self.iteration_msg}")
 
     def timer_callback(self):
+        """
+        Timer callback to periodically update the mission state.
+        """
         if self.simulation_msg is None or self.iteration_msg is None:
             return
 
