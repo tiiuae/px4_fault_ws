@@ -7,9 +7,10 @@ import random
 import numpy as np
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from rclpy.node import Node
-from std_msgs.msg import String, Float32MultiArray
+from std_msgs.msg import String, Float32MultiArray, Int8
 from ament_index_python.packages import get_package_share_directory
 import yaml
+
 
 class MissionManager(Node):
     """
@@ -28,12 +29,13 @@ class MissionManager(Node):
         self.current_iteration = 0
         self.state = 1
         self.simulation_msg = None
-        self.iteration_msg = None
+        self.iteration_msg = 'COMPLETED'
 
         # ROS2 Subscribers and Publisher
         self.sim_subscriber = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
         self.iteration_subscriber = self.create_subscription(String, '/iteration/state', self.iteration_callback, qos)
         self.iteration_pub = self.create_publisher(Float32MultiArray, '/iteration/waypoints', 1)
+        self.iter_update = self.create_publisher(Int8, '/iteration/current', 1)
 
         # Mission setup
         self._create_directory()
@@ -80,6 +82,7 @@ class MissionManager(Node):
         output = Float32MultiArray()
         output.data = np.array(self.waypoints[self.current_iteration]).reshape(1, -1)[0].tolist()
         self.iteration_pub.publish(output)
+        self.iter_update.publish(Int8(data = self.current_iteration))
         self.current_iteration += 1
 
     def state_two(self):
@@ -108,7 +111,7 @@ class MissionManager(Node):
         """
         self.get_logger().debug("In State 4")
         # No further action required
-        
+
     def _create_directory(self) -> None:
         """
         Create a directory to store mission records.
@@ -216,7 +219,7 @@ class MissionManager(Node):
         """
         Timer callback to periodically update the mission state.
         """
-        if self.simulation_msg is None or self.iteration_msg is None:
+        if self.simulation_msg != 'ACTIVE' or self.iteration_msg is None:
             return
 
         self.update(iteration_msg=self.iteration_msg, simulation_msg=self.simulation_msg)

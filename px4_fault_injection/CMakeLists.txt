@@ -32,6 +32,7 @@ install(PROGRAMS
   scripts/iteration_runner.py
   scripts/drone_state_monitor.py
   scripts/mission_manager.py
+  scripts/fault_manager.py
   scripts/test.py
   DESTINATION lib/${PROJECT_NAME}
 )
