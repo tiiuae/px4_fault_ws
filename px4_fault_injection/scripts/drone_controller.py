@@ -37,7 +37,7 @@ class DroneController(Node):
         self.get_logger().info("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
-                print("Connected to drone!")
+                self.get_logger().info("Connected to drone!")
                 break
 
         self.get_logger().info("Waiting for drone to have a global position estimate...")
@@ -66,7 +66,7 @@ class DroneController(Node):
             self.get_logger().error("Disarming")
             await self.drone.action.disarm()
             return
-           
+
         await self.drone.offboard.set_position_ned(PositionNedYaw(0.0, 0.0, -2.5, 0.0))
         self.get_logger().warning("Drone activated")
 

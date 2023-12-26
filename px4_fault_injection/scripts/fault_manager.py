@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
-import csv
 import os
 from rclpy.qos import QoSProfile, DurabilityPolicy
 import random
 import rclpy
 from rclpy.node import Node
-import random
 import time
 from std_msgs.msg import Int8, String
-from std_srvs.srv import SetBool
-from io import StringIO
 from ament_index_python.packages import get_package_share_directory
 import yaml
 import threading
+
 
 class FaultManager(Node):
 
@@ -23,10 +20,14 @@ class FaultManager(Node):
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
         self.faulty_sensors = {}
-        self.faults_active = False #! MAKE SURE TO FLIP THIS AT PREEMPT
+        self.folder_name = ""
+        self.faults_active = False
         self.iteration_thread = None
+        self.current_interation = 0
         self.stop_thread_event = threading.Event()
         self.out_string = ""
+        self.in_iteration = False
+        self.fault_window = [1, 5]  # Arbitrary default values
 
         self.new_inter_sub = self.create_subscription(Int8, '/iteration/current', self.run_iteration, 1)
         self.iter_state = self.create_subscription(String, '/iteration/state', self.iter_state_update, qos)
@@ -35,7 +36,19 @@ class FaultManager(Node):
         self.param_float_pub = self.create_publisher(String, "/drone_controller/set_param_float", 1)
         self.param_int_pub = self.create_publisher(String, "/drone_controller/set_param_int", 1)
 
+        self._create_directory()
         self._init_mission_params()
+
+    def _create_directory(self) -> None:
+        """
+        Create a directory to store mission records.
+        """
+        self.folder_name = f"{os.getcwd()}/records/{str(int(self.get_clock().now().seconds_nanoseconds()[0]/100))}"
+        if not os.path.exists(self.folder_name):
+            os.makedirs(self.folder_name)
+            self.get_logger().warning(f"Directory '{self.folder_name}' created successfully.")
+        else:
+            self.get_logger().info(f"Directory '{self.folder_name}' already exists.")
 
     def _init_mission_params(self) -> None:
         config_path = get_package_share_directory(
@@ -45,6 +58,8 @@ class FaultManager(Node):
                 self.mission_params = yaml.safe_load(yaml_file)
         except yaml.YAMLError as e:
             self.get_logger().error(f"Error reading YAML file: {e}.")
+
+        self.fault_window = self.mission_params['time_range_for_faults']
 
         for sensor in self.mission_params['sensors']:
             module_name = sensor['module_name']
@@ -73,14 +88,10 @@ class FaultManager(Node):
             # Remove the module entry if no active faults were found
             if not active_faults and module_name in self.faulty_sensors:
                 del self.faulty_sensors[module_name]
-        self._activate_faults()
-        self._deactivate_faults()
-        self._dump_data()
-        print(self.out_string)
 
     def _activate_faults(self):
         self.faults_active = True
-        self.out_string += f"{int(self.get_clock().now().nanoseconds / 1000)}"
+        self.out_string += f"{int(self.get_clock().now().nanoseconds / 1000)},"
         self.out_string += "1,"
         for key in list(self.faulty_sensors.keys()):
             sensor = self.faulty_sensors[key]
@@ -95,7 +106,7 @@ class FaultManager(Node):
 
     def _deactivate_faults(self):
         self.faults_active = False
-        self.out_string += f"{int(self.get_clock().now().nanoseconds / 1000)}"
+        self.out_string += f"{int(self.get_clock().now().nanoseconds / 1000)},"
         self.out_string += "0,"
         for key in list(self.faulty_sensors.keys()):
             sensor = self.faulty_sensors[key]
@@ -110,16 +121,18 @@ class FaultManager(Node):
         if self.iteration_thread is not None and self.iteration_thread.is_alive():
             self.stop_thread_event.set()
 
+        self.current_interation = msg.data
+        self.in_iteration = True
+        self.out_string = ""
         self.stop_thread_event.clear()
-        self.iteration_thread = threading.Thread(target=self._iteration_execution)
+        self.iteration_thread = threading.Thread(target=self._iteration_execution, args=(int(msg.data), ))
         self.iteration_thread.start()
 
-    #! TESTING THIS FUNCTION OUT
-    def _iteration_execution(self):
-        print("in thread")
+    def _iteration_execution(self, iter_msg: int):
+        self.get_logger().info(f"Fault injection in iteration: {iter_msg}")
         while not self.stop_thread_event.is_set():
             # Random sleep interval, you can adjust this as needed
-            sleep_time = random.uniform(1, 5)  # Random sleep time between 1 and 5 seconds
+            sleep_time = random.uniform(self.fault_window[0], self.fault_window[1])
             time.sleep(sleep_time)
 
             # Check if the thread should stop
@@ -131,21 +144,25 @@ class FaultManager(Node):
                 self._deactivate_faults()
             else:
                 self._activate_faults()
-        print("out of thread")
+        self.get_logger().info("Fault injection halted. Iteration over.")
 
     def iter_state_update(self, msg: String):
         if msg.data == "COMPLETED":
+            self.in_iteration = False
             self._deactivate_faults()
             self._dump_data()
             self.stop_thread_event.set()
 
     def sim_state_update(self, msg: String):
-        if msg.data != "ACTIVE":
-            self._deactivate_faults()
-            self._dump_data()
+        if self.in_iteration and msg.data != "ACTIVE":
+            # self.get_logger().error("Iteration preempted.")
+            self.in_iteration = False
+            # self._deactivate_faults()
+            self._dump_data(preempt = True)
+
             self.stop_thread_event.set()
 
-    def _dump_data(self):
+    def _dump_data(self, preempt = False):
         self.header = "timestamp,fault_state,"
         for key in list(self.faulty_sensors.keys()):
             sensor = self.faulty_sensors[key]
@@ -155,6 +172,20 @@ class FaultManager(Node):
                 else:
                     self.header += f"{sensor[fault_type]['label']},"
         self.out_string = self.header[:-1] + "\n" + self.out_string
+        if preempt:
+            self.out_string += "PREEMPTED\n"
+
+        if not os.path.exists(f"{self.folder_name}/iteration_{self.current_interation}"):
+            os.makedirs(f"{self.folder_name}/iteration_{self.current_interation}")
+            self.get_logger().warning(f"Directory '{self.folder_name}/iteration_{self.current_interation}' created successfully.")
+        else:
+            self.get_logger().info(f"Directory '{self.folder_name}/iteration_{self.current_interation}' already exists.")
+
+        with open(f'{self.folder_name}/iteration_{self.current_interation}/faults.csv', 'w') as f:
+            f.write(self.out_string)
+
+        self.out_string = ""
+        self.header = ""
 
 
 def main(args=None) -> None:

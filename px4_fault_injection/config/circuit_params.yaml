@@ -1,3 +1,4 @@
+# EDITABLE
 boundaries:
   north_south:
     lower: -5.0
@@ -15,76 +16,87 @@ number_of_waypoints:
   lower: 1
   upper: 6
 iterations: 2
+time_range_for_faults: [1, 5]
+# SELECTIVELY EDITABLE VALUES BETWEEN #!--
 sensors:
+  #--------------------------------
   - module_name: "accelerometer"
     root: "SENS_ACCEL"
     record: True
     data_type: px4_msgs.msg/SensorAccel
     topic_name: "/fmu/out/sensor_accel"
     faults:
+  #!--------------------------------
       - type: "gaussian_noise._NOIS"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_shift._SHIF"
-        active: False 
-        vals: [0.0, 0.0]
+        active: True                  # EDITABLE 
+        vals: [0.0, 0.01]             # EDITABLE
       - type: "bias_scale._SCAL"
-        active: False
-        vals: [0.0, 0.0]
-      - type: "drift._DRIF"
-        active: True
-        vals: [0.0, 1.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+      - type: "drift._DRIFT"
+        active: True                  # EDITABLE
+        vals: [0.0, 0.1]              # EDITABLE
+  #!--------------------------------
   - module_name: "gyroscope"
     root: "SENS_GYRO"
-    record: True
+    record: False
     data_type: px4_msgs.msg/SensorGyro
     topic_name: "/fmu/out/sensor_gyro"
     faults:
+  #!--------------------------------
       - type: "gaussian_noise._NOIS"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_shift._SHIF"
-        active: True 
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_scale._SCAL"
-        active: True
-        vals: [0.0, 0.0]
-      - type: "drift._DRIF"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+      - type: "drift._DRIFT"
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+  #!--------------------------------
   - module_name: "magnetometer"
     root: "SENS_MAG"
-    record: True
+    record: False
     data_type: px4_msgs.msg/SensorMag
     topic_name: "/fmu/out/sensor_mag"
     faults:
+  #!--------------------------------
       - type: "gaussian_noise._NOIS"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_shift._SHIF"
-        active: False 
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_scale._SCAL"
-        active: False
-        vals: [0.0, 0.0]
-      - type: "drift._DRIF"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+      - type: "drift._DRIFT"
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+  #!--------------------------------
   - module_name: "barometer"
     root: "SENS_BARO"
     record: True
     data_type: px4_msgs.msg/SensorBaro
     topic_name: "/fmu/out/sensor_baro"
     faults:
+  #!--------------------------------
       - type: "gaussian_noise._NOIS"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_shift._SHIF"
-        active: False 
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
       - type: "bias_scale_SCAL"
-        active: False
-        vals: [0.0, 0.0]
-      - type: "drift._DRIF"
-        active: False
-        vals: [0.0, 0.0]
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+      - type: "drift._DRIFT"
+        active: False                 # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE
+  #--------------------------------

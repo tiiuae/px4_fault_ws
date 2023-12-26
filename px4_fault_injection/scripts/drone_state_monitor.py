@@ -10,77 +10,99 @@ import subprocess
 import time
 import os
 import threading
+from ament_index_python.packages import get_package_share_directory
+import yaml
 
 class DroneStateMonitor(Node):
     def __init__(self):
         super().__init__('drone_state_monitor')
 
-        self.qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1
-        )
         self.sim_active = False
+        self.mission_params = {}
+        self.faulty_sensors = {}
 
-        # self.drone_failure_detector_sub = self.create_subscription(FailureDetectorStatus, "/fmu/out/failure_detector_status", self.drone_failure_detector_callback, self.qos_profile)
-        self.drone_failure_detector_sub = self.create_subscription(VehicleLocalPosition, "/fmu/out/vehicle_local_position", self.drone_failure_detector_callback, self.qos_profile)
-
+        qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.TRANSIENT_LOCAL, history=HistoryPolicy.KEEP_LAST, depth=1)
+        self.drone_failure_detector_sub = self.create_subscription(VehicleLocalPosition, "/fmu/out/vehicle_local_position", self.drone_failure_detector_callback, qos)
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self.subscription1 = self.create_subscription(
-            String,
-            '/gazebo/state',
-            self.listener_callback1,
-            qos)
-        
+        self.sim_state_sub = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
+
         self.drone_state_pub = self.create_publisher(String, "/gazebo/trigger", 10)
-        self.cli = self.create_client(SetBool, 'inject_fault')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
+        self.param_float_pub = self.create_publisher(String, "/drone_controller/set_param_float", 1)
+        self.param_int_pub = self.create_publisher(String, "/drone_controller/set_param_int", 1)
 
-    def send_request(self, state):
-        request = SetBool.Request(data = state)
-        self.fault_active = state
-        self.future = self.cli.call_async(request)
-        self.get_logger().warning(f"Set fault to {state}")
-        return self.future.result()
-        # return True
+        self._init_mission_params()
 
-    # def drone_failure_detector_callback(self, msg: FailureDetectorStatus):
-    #     cond1 = msg.fd_alt or msg.fd_arm_escs or msg.fd_battery or msg.fd_pitch
-    #     cond2 = msg.fd_ext or msg.fd_imbalanced_prop or msg.fd_motor or msg.fd_roll
-    #     if (cond1 or cond2) and self.sim_active:
-    #         self.send_request(False)
-    #         time.sleep(3)
-    #         self.drone_state_pub.publish(String(data="KILL_RE"))
-    #         return
-    #     else:
-    #         return
+    def _init_mission_params(self) -> None:
+        config_path = get_package_share_directory(
+            "px4_fault_injection") + "/config/circuit_params.yaml"
+        try:
+            with open(config_path, 'r') as yaml_file:
+                self.mission_params = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as e:
+            self.get_logger().error(f"Error reading YAML file: {e}.")
+
+        for sensor in self.mission_params['sensors']:
+            module_name = sensor['module_name']
+            root = sensor['root']
+            active_faults = []
+
+            for fault in sensor['faults']:
+                if fault['active']:
+                    fault_type, label = fault['type'].split('.')
+
+                    if fault_type not in active_faults:
+                        active_faults.append(fault_type)
+
+                    if module_name not in self.faulty_sensors:
+                        self.faulty_sensors[module_name] = {}
+                        self.faulty_sensors[module_name]['activator'] = root + "_FAULT"
+                    if fault_type not in self.faulty_sensors[module_name]:
+                        self.faulty_sensors[module_name][fault_type] = {}
+
+                    self.faulty_sensors[module_name][fault_type]['vals'] = fault['vals']
+                    self.faulty_sensors[module_name][fault_type]['label'] = root + label
+
+            if not active_faults and module_name in self.faulty_sensors:
+                del self.faulty_sensors[module_name]
+
+    def _deactivate_faults(self):
+        self.faults_active = False
+        for key in list(self.faulty_sensors.keys()):
+            sensor = self.faulty_sensors[key]
+            for fault_type in list(sensor.keys()):
+                if fault_type != 'activator':
+                    self.param_float_pub.publish(String(data = f"{sensor[fault_type]['label']}/{0.0}"))
+            self.param_int_pub.publish(String(data = f"{sensor['activator']}/{0}"))
 
     def drone_failure_detector_callback(self, msg: VehicleLocalPosition):
         if not self.sim_active:
             return
-        
-        pos_cond = abs(msg.x) > 200 or abs(msg.y) > 200 or abs(msg.z) > 200
+
+        pos_limits = self.mission_params['boundaries']
+        pos_cond1 = msg.x > pos_limits['east_west']['upper'] or msg.y > pos_limits['north_south']['upper'] or msg.z < pos_limits['altitude']['upper']
+        pos_cond2 = msg.x < pos_limits['east_west']['lower'] or msg.y < pos_limits['north_south']['lower']
         vel_cond = abs(msg.vx) > 200 or abs(msg.vy) > 200 or abs(msg.vz) > 200
         acc_cond = abs(msg.ax) > 200 or abs(msg.ay) > 200 or abs(msg.az) > 200
 
-        if pos_cond or vel_cond or acc_cond:
-            self.send_request(False)
+        if pos_cond1 or pos_cond2 or vel_cond or acc_cond:
+            self._deactivate_faults()
+            self._deactivate_faults()
             time.sleep(3)
             self.drone_state_pub.publish(String(data="KILL_RE"))
+            self.sim_active = False
             time.sleep(3)
             return
         else:
             return
-        
-    def listener_callback1(self, msg: String):
+
+    def sim_state_callback(self, msg: String):
         if msg.data == "ACTIVE":
             self.sim_active = True
         else:
             self.sim_active = False
         return
-    
+
+
 def main(args=None) -> None:
     print('Starting drone_state_monitor node...')
     rclpy.init(args=args)
@@ -99,3 +121,4 @@ def main(args=None) -> None:
 
 if __name__ == '__main__':
     main()
+
