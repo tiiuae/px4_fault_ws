@@ -15,6 +15,50 @@ class SimulationManager(Node):
     to control a Gazebo simulation environment for a drone.
     """
 
+    start_session = """
+    # Name of the tmux session
+    SESSION_NAME="px4_sim"
+
+    # Create a new detached tmux session
+    tmux new-session -d -s $SESSION_NAME
+
+    # Run your commands in the tmux session
+    tmux send-keys -t $SESSION_NAME 'cd /home/juniorsundar-unikie/Documents/new/PX4-Autopilot/' C-m
+    tmux send-keys -t $SESSION_NAME "make px4_sitl gz_x500" C-m
+    # tmux send-keys -t $SESSION_NAME 'HEADLESS=1 make px4_sitl gz_x500' C-m
+    echo "tmux session $SESSION_NAME started"
+    """
+
+    kill_session = """
+    # Name of the tmux session
+    SESSION_NAME="px4_sim"
+
+    killall -9 px4
+    killall -9 ninja
+    killall -9 make
+    killall -9 java
+
+    # Replace 'process_name' with the name of the process you want to kill
+    PROCESS_NAME="gz sim"
+
+    # Find the process ID
+    PID=$(ps aux | grep "$PROCESS_NAME" | grep -v grep | awk '{print $2}')
+
+    # Check if the PID was found
+    if [ -z "$PID" ]; then
+        echo "No process found with name $PROCESS_NAME"
+    else
+        # Kill the process
+        kill $PID
+        echo "Process $PROCESS_NAME (PID $PID) has been killed."
+    fi
+
+    # Kill the tmux session
+    tmux kill-session -t $SESSION_NAME
+
+    echo "tmux session $SESSION_NAME killed"
+    """
+
     def __init__(self):
         """
         Initializes the SimulationManager node and sets up publishers, subscribers,
@@ -40,7 +84,8 @@ class SimulationManager(Node):
 
         # Initialize simulation and drone states
         self.publish_message("IDLE")
-        subprocess.call([self.start_session_sh])
+        subprocess.run(self.start_session, shell=True, check=True, text=True)
+        # subprocess.call([self.start_session_sh])
         time.sleep(10)
         self.prepare_drone()
         self.publish_message("ACTIVE")
@@ -90,7 +135,8 @@ class SimulationManager(Node):
         Kills the current simulation session.
         """
         self.publish_message("KILLED")
-        subprocess.call([self.kill_session_sh])
+        subprocess.run(self.kill_session, shell=True, check=True, text=True)
+        # subprocess.call([self.kill_session_sh])
         time.sleep(10)
         self.publish_message("IDLE")
 
@@ -98,7 +144,8 @@ class SimulationManager(Node):
         """
         Starts a new simulation session.
         """
-        subprocess.call([self.start_session_sh])
+        subprocess.run(self.start_session, shell=True, check=True, text=True)
+        # subprocess.call([self.start_session_sh])
         time.sleep(10)
         self.prepare_drone()
         self.publish_message("ACTIVE")
