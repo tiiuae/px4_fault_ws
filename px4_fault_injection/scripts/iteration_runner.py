@@ -10,38 +10,49 @@ import threading
 
 
 class IterationRunner(Node):
+    """
+    A ROS node for running iterations in a simulated drone environment.
+    This node manages the execution of waypoint navigation based on received instructions.
+    """
 
-    SLEEP_TIME = 5.0
+    SLEEP_TIME = 5.0  # Constant defining the sleep time between waypoint movements
 
     def __init__(self) -> None:
         super().__init__('iteration_runner')
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self.waypoint_receiver = self.create_subscription(Float32MultiArray, '/iteration/waypoints', self.run_waypoints, 10)
-        self.move_pub = self.create_publisher(Float32MultiArray, "/drone_controller/move_drone_NEDY", 10)
-        self.sim_state = False
-        self.sim_state_sub = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
 
+        # Subscribers
+        self.waypoint_receiver = self.create_subscription(Float32MultiArray, '/iteration/waypoints', self._run_waypoints, 10)
+        self.sim_state_sub = self.create_subscription(String, '/gazebo/state', self._sim_state_callback, qos)
+
+        # Publishers
+        self.move_pub = self.create_publisher(Float32MultiArray, "/drone_controller/move_drone_NEDY", 10)
         self.state_pub = self.create_publisher(String, '/iteration/state', qos)
+
+        # Thread management for waypoint execution
         self.waypoint_thread = None
         self.stop_thread_event = threading.Event()
 
-    def run_waypoints(self, waypoints: Float32MultiArray) -> None:
+    def _run_waypoints(self, waypoints: Float32MultiArray) -> None:
+        """
+        Callback function to handle the received waypoints.
+        It starts a new thread to execute the waypoints if not already running.
+        """
         if self.waypoint_thread is not None and self.waypoint_thread.is_alive():
-            # If the thread is already running, signal it to stop
             self.stop_thread_event.set()
 
-        # Reset the event and start a new thread
         self.stop_thread_event.clear()
         self.waypoint_thread = threading.Thread(target=self._waypoint_execution, args=(waypoints,))
         self.waypoint_thread.start()
 
     def _waypoint_execution(self, waypoints: Float32MultiArray):
-        # This is the method that runs in the thread
+        """
+        Executes waypoint navigation in a separate thread.
+        """
         self.state_pub.publish(String(data='STARTED'))
 
         waypoint_array = np.array(waypoints.data).reshape(-1, 4).tolist()
         for point in waypoint_array:
-            # Check the event to see if we need to stop early
             if self.stop_thread_event.is_set():
                 self.state_pub.publish(String(data='PREEMPTED'))
                 return
@@ -54,15 +65,20 @@ class IterationRunner(Node):
                 self.get_clock().sleep_for(Duration(seconds=self.SLEEP_TIME))
 
         self.state_pub.publish(String(data='COMPLETED'))
-        return
 
-    def sim_state_callback(self, msg: String) -> None:
+    def _sim_state_callback(self, msg: String) -> None:
+        """
+        Callback for simulation state changes.
+        Stops waypoint execution if the simulation becomes inactive.
+        """
         if msg.data != 'ACTIVE':
-            # If the simulation is not active, signal the waypoint thread to stop
             self.stop_thread_event.set()
 
 
 def main(args=None) -> None:
+    """
+    Main function to initialize and run the IterationRunner node.
+    """
     print('Starting iteration_runner node...')
     rclpy.init(args=args)
     try:

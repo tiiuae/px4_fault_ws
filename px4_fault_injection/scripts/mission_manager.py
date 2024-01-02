@@ -32,8 +32,8 @@ class MissionManager(Node):
         self.iteration_msg = 'COMPLETED'
 
         # ROS2 Subscribers and Publisher
-        self.sim_subscriber = self.create_subscription(String, '/gazebo/state', self.sim_state_callback, qos)
-        self.iteration_subscriber = self.create_subscription(String, '/iteration/state', self.iteration_callback, qos)
+        self.sim_subscriber = self.create_subscription(String, '/gazebo/state', self._sim_state_callback, qos)
+        self.iteration_subscriber = self.create_subscription(String, '/iteration/state', self._iteration_callback, qos)
         self.iteration_pub = self.create_publisher(Float32MultiArray, '/iteration/waypoints', 1)
         self.iter_update = self.create_publisher(Int8, '/iteration/current', 1)
 
@@ -43,9 +43,9 @@ class MissionManager(Node):
         self._generate_mission()
 
         # ROS2 Timer
-        self.create_timer(5, self.timer_callback)
+        self.create_timer(5, self._timer_callback)
 
-    def update(self, iteration_msg=None, simulation_msg=None) -> None:
+    def _update(self, iteration_msg=None, simulation_msg=None) -> None:
         """
         Update the current iteration and simulation message.
         """
@@ -53,21 +53,21 @@ class MissionManager(Node):
             self.iteration_msg = iteration_msg
         if simulation_msg is not None:
             self.simulation_msg = simulation_msg
-        self.process_state()
+        self._process_state()
 
-    def process_state(self):
+    def _process_state(self):
         """
         Process the current state of the mission and transition to the next state as needed.
         """
         state_actions = {
-            1: self.state_one,
-            2: self.state_two,
-            3: self.state_three,
-            4: self.state_four
+            1: self._state_one,
+            2: self._state_two,
+            3: self._state_three,
+            4: self._state_four
         }
         state_actions.get(self.state, lambda: None)()
 
-    def state_one(self):
+    def _state_one(self):
         """
         State 1: Publish waypoints and transition to the next state.
         """
@@ -85,7 +85,7 @@ class MissionManager(Node):
         self.iter_update.publish(Int8(data = self.current_iteration))
         self.current_iteration += 1
 
-    def state_two(self):
+    def _state_two(self):
         """
         State 2: Check the iteration message and transition accordingly.
         """
@@ -96,7 +96,7 @@ class MissionManager(Node):
         elif self.iteration_msg == "PREEMPTED":
             self.state = 3
 
-    def state_three(self):
+    def _state_three(self):
         """
         State 3: Handle the preempted state based on simulation message.
         """
@@ -105,7 +105,7 @@ class MissionManager(Node):
             self.state = 1
             self.msg_sent = True
 
-    def state_four(self):
+    def _state_four(self):
         """
         State 4: Final state, indicating completion.
         """
@@ -201,28 +201,28 @@ class MissionManager(Node):
 
         return path
 
-    def sim_state_callback(self, msg):
+    def _sim_state_callback(self, msg):
         """
         Callback for simulation state updates.
         """
         self.simulation_msg = msg.data
         self.get_logger().info(f"Simulation state is now: {self.simulation_msg}")
 
-    def iteration_callback(self, msg):
+    def _iteration_callback(self, msg):
         """
         Callback for iteration state updates.
         """
         self.iteration_msg = msg.data
         self.get_logger().info(f"Current iteration state is now: {self.iteration_msg}")
 
-    def timer_callback(self):
+    def _timer_callback(self):
         """
         Timer callback to periodically update the mission state.
         """
         if self.simulation_msg != 'ACTIVE' or self.iteration_msg is None:
             return
 
-        self.update(iteration_msg=self.iteration_msg, simulation_msg=self.simulation_msg)
+        self._update(iteration_msg=self.iteration_msg, simulation_msg=self.simulation_msg)
 
 
 def main(args=None):

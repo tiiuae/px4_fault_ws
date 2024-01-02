@@ -16,6 +16,10 @@ import yaml
 
 
 class SensorRecorder(Node):
+    """
+    A ROS node for recording sensor data during a drone's flight simulation.
+    It subscribes to various sensor topics and records the incoming data into CSV files.
+    """
 
     SLEEP_TIME = 5
 
@@ -30,10 +34,10 @@ class SensorRecorder(Node):
             "barometer": None,
         }
         self.sub_callbacks = {
-            "accelerometer": self.accel_callback,
-            "gyroscope": self.gyro_callback,
-            "magnetometer": self.mag_callback,
-            "barometer": self.baro_callback,
+            "accelerometer": self._accel_callback,
+            "gyroscope": self._gyro_callback,
+            "magnetometer": self._mag_callback,
+            "barometer": self._baro_callback,
         }
         self.active_sensors = {
             "accelerometer": False,
@@ -72,6 +76,9 @@ class SensorRecorder(Node):
         self._create_subscribers()
 
     def _init_mission_params(self) -> None:
+        """
+        Initializes mission parameters from a YAML configuration file.
+        """
         config_path = get_package_share_directory("px4_fault_injection") + "/config/circuit_params.yaml"
         try:
             with open(config_path, 'r') as yaml_file:
@@ -80,6 +87,9 @@ class SensorRecorder(Node):
             self.get_logger().error(f"Error reading YAML file: {e}.")
 
     def _create_directory(self) -> None:
+        """
+        Creates a directory for storing sensor data records.
+        """
         self.folder_name = f"{os.getcwd()}/records/{str(int(self.get_clock().now().seconds_nanoseconds()[0]/100))}"
         if not os.path.exists(self.folder_name):
             os.makedirs(self.folder_name)
@@ -88,6 +98,9 @@ class SensorRecorder(Node):
             self.get_logger().info(f"Directory '{self.folder_name}' already exists.")
 
     def _start_record(self, record_id: Int8):
+        """
+        Begins recording sensor data for a new iteration.
+        """
         self.recording = True
         for key in list(self.active_sensors.keys()):
             if self.active_sensors[key]:
@@ -104,6 +117,9 @@ class SensorRecorder(Node):
                 self.prev_record = record_id.data
 
     def _end_record(self, record_id: String):
+        """
+        Ends recording sensor data for the current iteration.
+        """
         iter_state = record_id.data == "COMPLETED" or record_id.data == "PREEMPTED"
         if self.recording and iter_state:
             for key in self.active_sensors.keys():
@@ -113,6 +129,9 @@ class SensorRecorder(Node):
             return
 
     def _csv_string_to_list(self, csv_string):
+        """
+        Converts a CSV string to a list.
+        """
         csv_file = StringIO(csv_string)
 
         csv_reader = csv.reader(csv_file)
@@ -121,6 +140,9 @@ class SensorRecorder(Node):
         return row_list
 
     def _create_subscribers(self) -> None:
+        """
+        Creates subscribers for each active sensor.
+        """
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.current_iteration_sub = self.create_subscription(Int8, "/iteration/current", self._start_record, 1)
         self.iter_state_sub = self.create_subscription(String, "/iteration/state", self._end_record, qos)
@@ -134,7 +156,7 @@ class SensorRecorder(Node):
                                                                                     self.qos_profile)
 
     #____________________________________________
-    def accel_callback(self, msg: SensorAccel):
+    def _accel_callback(self, msg: SensorAccel):
         if not self.active_sensors["accelerometer"]:
             return
         elif not self.recording:
@@ -143,7 +165,7 @@ class SensorRecorder(Node):
             row = self._csv_string_to_list(message_to_csv(msg))
             self.sensor_csvs["accelerometer"].writerow(row)
 
-    def gyro_callback(self, msg: SensorGyro):
+    def _gyro_callback(self, msg: SensorGyro):
         if not self.active_sensors["gyroscope"]:
             return
         elif not self.recording:
@@ -152,7 +174,7 @@ class SensorRecorder(Node):
             row = self._csv_string_to_list(message_to_csv(msg))
             self.sensor_csvs["gyroscope"].writerow(row)
 
-    def mag_callback(self, msg: SensorMag):
+    def _mag_callback(self, msg: SensorMag):
         if not self.active_sensors["magnetometer"]:
             return
         elif not self.recording:
@@ -161,7 +183,7 @@ class SensorRecorder(Node):
             row = self._csv_string_to_list(message_to_csv(msg))
             self.sensor_csvs["magnetometer"].writerow(row)
 
-    def baro_callback(self, msg: SensorBaro):
+    def _baro_callback(self, msg: SensorBaro):
         if not self.active_sensors["barometer"]:
             return
         elif not self.recording:
@@ -173,6 +195,9 @@ class SensorRecorder(Node):
 
 
 def main(args=None) -> None:
+    """
+    Main function to initialize and run the SensorRecorder node.
+    """
     print('Starting sensor_recorder node...')
     rclpy.init(args=args)
     try:

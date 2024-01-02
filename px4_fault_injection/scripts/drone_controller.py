@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import asyncio
-
 import rclpy
 from rclpy.node import Node
-
 from mavsdk import System
 from mavsdk.param import ParamError
 from mavsdk.offboard import OffboardError, PositionNedYaw
@@ -12,13 +10,23 @@ from std_msgs.msg import String, Empty, Float32MultiArray
 
 
 class DroneController(Node):
+    """
+    A ROS node for controlling a MAVSDK compatible drone.
+    This node subscribes to various topics to control the drone's
+    actions such as initialisation, activation, deactivation, moving,
+    and setting parameters.
+    """
 
     def __init__(self):
+        """
+        Constructor for the DroneController class.
+        Initialises the ROS node and sets up subscriptions.
+        """
         super().__init__('drone_controller')
         self.done = None
-
         self.loop = asyncio.get_event_loop()
 
+        # Subscriptions
         self.initialise_sub = self.create_subscription(Empty, "/drone_controller/initialise", self.initialise_drone, 10)
         self.activate_sub = self.create_subscription(Empty, "/drone_controller/activate", self.activate_drone, 10)
         self.deactivate_sub = self.create_subscription(Empty, "/drone_controller/deactivate", self.deactivate_drone, 10)
@@ -27,13 +35,21 @@ class DroneController(Node):
         self.param_int_sub = self.create_subscription(String, "/drone_controller/set_param_int", self.set_param_int, 20)
 
     def initialise_drone(self, msg):
+        """
+        Initialises the drone by connecting to it and waiting for it
+        to be ready.
+        """
         self.loop.run_until_complete(self._initialise_drone())
-        return
 
     async def _initialise_drone(self):
+        """
+        Asynchronous method to initialise the drone.
+        Connects to the drone and checks its state.
+        """
         self.drone = System()
         await self.drone.connect(system_address="udp://:14540")
 
+        # Log connection and health status
         self.get_logger().info("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -49,10 +65,15 @@ class DroneController(Node):
         self.get_logger().warning("Drone initialised")
 
     def activate_drone(self, msg):
+        """
+        Activates the drone, making it ready for offboard control.
+        """
         self.loop.run_until_complete(self._activate_drone())
-        return
 
     async def _activate_drone(self):
+        """
+        Asynchronous method to arm the drone and start offboard mode.
+        """
         self.get_logger().info("Arming")
         await self.drone.action.arm()
         self.get_logger().info("Setting initial setpoint")
@@ -71,10 +92,15 @@ class DroneController(Node):
         self.get_logger().warning("Drone activated")
 
     def deactivate_drone(self, msg):
+        """
+        Deactivates the drone by stopping the offboard mode and landing.
+        """
         self.loop.run_until_complete(self._deactivate_drone())
-        return
 
     async def _deactivate_drone(self):
+        """
+        Asynchronous method to stop the offboard mode and land the drone.
+        """
         self.get_logger().info("Stopping offboard")
         try:
             await self.drone.offboard.stop()
@@ -86,33 +112,48 @@ class DroneController(Node):
         self.get_logger().info("Disarming")
         await self.drone.action.disarm()
         self.get_logger().warning("Drone deactivated")
-        return
 
     def go_to_positionNEDYaw(self, msg: Float32MultiArray):
+        """
+        Moves the drone to a specified position using NED (North, East, Down) coordinates and Yaw.
+        """
         self.loop.run_until_complete(self._go_to_positionNEDYaw(msg.data))
-        return
 
     async def _go_to_positionNEDYaw(self, point):
+        """
+        Asynchronous method to move the drone to the specified NED position and Yaw.
+        """
         await self.drone.offboard.set_position_ned(PositionNedYaw(point[0], point[1], point[2], point[3]))
-        return
 
     def set_param_float(self, msg: String):
+        """
+        Sets a float parameter on the drone.
+        """
         string, value = msg.data.split('/')
         self.loop.run_until_complete(self._set_param_float(string, float(value)))
         self.get_logger().error(f"set {string} to {value}")
 
     async def _set_param_float(self, string, value):
+        """
+        Asynchronous method to set a float parameter on the drone.
+        """
         try:
             await self.drone.param.set_param_float(string, value)
         except ParamError as e:
             self.get_logger().error(f"Param cannot be set at current moment with exception {e}")
 
     def set_param_int(self, msg: String):
+        """
+        Sets an integer parameter on the drone.
+        """
         string, value = msg.data.split('/')
         self.loop.run_until_complete(self._set_param_int(string, int(value)))
         self.get_logger().error(f"set {string} to {value}")
 
     async def _set_param_int(self, string, value):
+        """
+        Asynchronous method to set an integer parameter on the drone.
+        """
         try:
             await self.drone.param.set_param_int(string, value)
         except ParamError as e:
@@ -120,6 +161,9 @@ class DroneController(Node):
 
 
 def main(args=None) -> None:
+    """
+    Main function to initialise and run the ROS node.
+    """
     print('Starting drone_controller node...')
     rclpy.init(args=args)
     try:
