@@ -32,6 +32,8 @@ class FaultManager(Node):
         self.out_string = ""
         self.in_iteration = False
         self.fault_window = [1, 5]  # Arbitrary default values
+        self.down_window = [1, 5]
+        self.fault_start_time = [1, 5]
 
         self.new_inter_sub = self.create_subscription(Int8, '/iteration/current', self._run_iteration, 1)
         self.iter_state = self.create_subscription(String, '/iteration/state', self._iter_state_update, qos)
@@ -66,7 +68,9 @@ class FaultManager(Node):
         except yaml.YAMLError as e:
             self.get_logger().error(f"Error reading YAML file: {e}.")
 
-        self.fault_window = self.mission_params['time_range_for_faults']
+        self.fault_window = self.mission_params['duration_for_faults']
+        self.down_window = self.mission_params['duration_between_faults']
+        self.fault_start_time = self.mission_params['time_to_fault_start']
 
         for sensor in self.mission_params['sensors']:
             module_name = sensor['module_name']
@@ -149,9 +153,20 @@ class FaultManager(Node):
         Executes an iteration of fault injection.
         """
         self.get_logger().info(f"Fault injection in iteration: {iter_msg}")
+
+        # Time taken for the fault to activate
+        sleep_time = random.uniform(self.fault_start_time[0], self.fault_start_time[1])
+        time.sleep(sleep_time)
+        self._activate_faults()
+
         while not self.stop_thread_event.is_set():
             # Random sleep interval, you can adjust this as needed
-            sleep_time = random.uniform(self.fault_window[0], self.fault_window[1])
+
+            if self.faults_active:
+                sleep_time = random.uniform(self.fault_window[0], self.fault_window[1])
+            else:
+                sleep_time = random.uniform(self.down_window[0], self.down_window[1])
+
             time.sleep(sleep_time)
 
             # Check if the thread should stop

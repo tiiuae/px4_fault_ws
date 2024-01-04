@@ -1,22 +1,24 @@
 # EDITABLE
 boundaries:
   north_south:
-    lower: -5.0
-    upper: 5.0
+    lower: -5.0 #UNIT Metres
+    upper: 5.0 #UNIT Metres
   east_west:
-    lower: -5.0
-    upper: 5.0
-  altitude:
-    lower: -2.0
-    upper: -5.0
+    lower: -5.0 #UNIT Metres
+    upper: 5.0 #UNIT Metres
+  altitude: # Negative values because positive is downwards
+    lower: -2.0 #UNIT Metres
+    upper: -5.0 #UNIT Metres
   yaw:
-    lower: -180
-    upper: 180
+    lower: -180 #UNIT Degrees
+    upper: 180 #UNIT Degrees
 number_of_waypoints:
-  lower: 1
-  upper: 6
+  lower: 2
+  upper: 10
 iterations: 2
-time_range_for_faults: [1, 5]
+duration_for_faults: [1, 5] #UNIT Seconds
+duration_between_faults: [1, 5] #UNIT Seconds
+time_to_fault_start: [1, 5] #UNIT Seconds
 # SELECTIVELY EDITABLE VALUES BETWEEN #!--
 sensors:
   #--------------------------------
@@ -27,29 +29,29 @@ sensors:
     topic_name: "/fmu/out/sensor_accel"
     faults:
   #!--------------------------------
-      - type: "gaussian_noise._NOIS"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+      - type: "gaussian_noise._NOISE"
+        active: True                 # EDITABLE
+        vals: [0.0, 0.1]              # EDITABLE | Standard deviation of a normal distribution. 
       - type: "bias_shift._SHIF"
-        active: True                  # EDITABLE 
-        vals: [0.0, 0.01]             # EDITABLE
+        active: False                  # EDITABLE
+        vals: [0.0, 0.0]             # EDITABLE | Percentage (written as decimal) of shift in actual value.
       - type: "bias_scale._SCAL"
         active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE | Scalar multiplier to scale actual value.
       - type: "drift._DRIFT"
-        active: True                  # EDITABLE
-        vals: [0.0, 0.1]              # EDITABLE
+        active: False                  # EDITABLE
+        vals: [0.0, 0.0]              # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
   #!--------------------------------
   - module_name: "gyroscope"
     root: "SENS_GYRO"
-    record: False
+    record: True
     data_type: px4_msgs.msg/SensorGyro
     topic_name: "/fmu/out/sensor_gyro"
     faults:
   #!--------------------------------
-      - type: "gaussian_noise._NOIS"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+      - type: "gaussian_noise._NOISE"
+        active: True                 # EDITABLE
+        vals: [0.0, 0.1]              # EDITABLE 
       - type: "bias_shift._SHIF"
         active: False                 # EDITABLE
         vals: [0.0, 0.0]              # EDITABLE
@@ -62,14 +64,14 @@ sensors:
   #!--------------------------------
   - module_name: "magnetometer"
     root: "SENS_MAG"
-    record: False
+    record: True
     data_type: px4_msgs.msg/SensorMag
     topic_name: "/fmu/out/sensor_mag"
     faults:
   #!--------------------------------
-      - type: "gaussian_noise._NOIS"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+      - type: "gaussian_noise._NOISE"
+        active: True                 # EDITABLE
+        vals: [0.0, 0.1]              # EDITABLE
       - type: "bias_shift._SHIF"
         active: False                 # EDITABLE
         vals: [0.0, 0.0]              # EDITABLE
@@ -87,9 +89,9 @@ sensors:
     topic_name: "/fmu/out/sensor_baro"
     faults:
   #!--------------------------------
-      - type: "gaussian_noise._NOIS"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+      - type: "gaussian_noise._NOISE"
+        active: True                 # EDITABLE
+        vals: [0.0, 0.1]              # EDITABLE
       - type: "bias_shift._SHIF"
         active: False                 # EDITABLE
         vals: [0.0, 0.0]              # EDITABLE
