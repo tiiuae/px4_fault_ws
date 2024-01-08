@@ -108,11 +108,14 @@ class SensorRecorder(Node):
                 header = []
                 empty_msg_dict = message_to_ordereddict(self.sensor_msgs[key]())
                 for sub_key in list(empty_msg_dict.keys()):
-                    try:
-                        for j in range(len(empty_msg_dict[sub_key])):
-                            header.append(sub_key + f"_{j}")
-                    except TypeError:
+                    if sub_key == 'timestamp':
                         header.append(sub_key)
+                    else:
+                        try:
+                            for j in range(len(empty_msg_dict[sub_key])):
+                                header.append(sub_key + f"_{j}|{key}")
+                        except TypeError:
+                            header.append(f"{sub_key}|{key}")
                 self.sensor_csvs[key].writerow(header)
                 self.prev_record = record_id.data
 

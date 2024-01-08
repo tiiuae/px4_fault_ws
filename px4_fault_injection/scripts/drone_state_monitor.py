@@ -25,8 +25,10 @@ class DroneStateMonitor(Node):
 
         # Initial state and parameters
         self.sim_active = False
+        self.sf: float = 1.5  # Assigning a safety factor in case the drone is exceeding boundary limits but is still functional
         self.mission_params = {}
         self.faulty_sensors = {}
+        self.safety_limits = {}
 
         # Setting up QoS profiles for subscriptions
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.TRANSIENT_LOCAL, history=HistoryPolicy.KEEP_LAST, depth=1)
@@ -83,6 +85,19 @@ class DroneStateMonitor(Node):
             if not active_faults and module_name in self.faulty_sensors:
                 del self.faulty_sensors[module_name]
 
+        radius_ns = (self.mission_params['boundaries']['north_south']['upper'] - self.mission_params['boundaries']['north_south']['lower'])/2
+        center_ns = (self.mission_params['boundaries']['north_south']['upper'] + self.mission_params['boundaries']['north_south']['lower'])/2
+        radius_ew = (self.mission_params['boundaries']['east_west']['upper'] - self.mission_params['boundaries']['east_west']['lower'])/2
+        center_ew = (self.mission_params['boundaries']['east_west']['upper'] + self.mission_params['boundaries']['east_west']['lower'])/2
+        self.safety_limits = self.mission_params['boundaries'] 
+        cor_radius_ns = self.sf * radius_ns
+        cor_radius_ew = self.sf * radius_ew
+        self.safety_limits['east_west']['upper'] = center_ew + cor_radius_ew
+        self.safety_limits['east_west']['lower'] = center_ew - cor_radius_ew
+        self.safety_limits['north_south']['upper'] = center_ns + cor_radius_ns
+        self.safety_limits['north_south']['lower'] = center_ns - cor_radius_ns
+        self.safety_limits['altitude']['upper'] = self.mission_params['boundaries']['altitude']['upper'] * self.sf  
+
     def _deactivate_faults(self):
         """
         Deactivates all active faults.
@@ -104,17 +119,17 @@ class DroneStateMonitor(Node):
             return
 
         # Check position and velocity limits
-        pos_limits = self.mission_params['boundaries']
-        pos_cond1 = msg.x > pos_limits['east_west']['upper'] or msg.y > pos_limits['north_south']['upper'] or msg.z < pos_limits['altitude']['upper']
-        pos_cond2 = msg.x < pos_limits['east_west']['lower'] or msg.y < pos_limits['north_south']['lower']
-        vel_cond = abs(msg.vx) > 200 or abs(msg.vy) > 200 or abs(msg.vz) > 200
-        acc_cond = abs(msg.ax) > 200 or abs(msg.ay) > 200 or abs(msg.az) > 200
+        pos_cond1: bool = msg.x > self.safety_limits['east_west']['upper'] or msg.y > self.safety_limits['north_south']['upper'] or msg.z < self.safety_limits['altitude']['upper']
+        pos_cond2: bool = msg.x < self.safety_limits['east_west']['lower'] or msg.y < self.safety_limits['north_south']['lower']
+        vel_cond: bool = abs(msg.vx) > 200 or abs(msg.vy) > 200 or abs(msg.vz) > 200
+        acc_cond: bool = abs(msg.ax) > 200 or abs(msg.ay) > 200 or abs(msg.az) > 200
 
         # Trigger fault deactivation and simulation kill if conditions are met
         if pos_cond1 or pos_cond2 or vel_cond or acc_cond:
             self._deactivate_faults()
             time.sleep(3)
             self.drone_state_pub.publish(String(data="KILL_RE"))
+            self.get_logger().error(f"Cause of failure is {pos_cond1}, {pos_cond2}, {vel_cond}, {acc_cond}")
             self.sim_active = False
             time.sleep(3)
             return

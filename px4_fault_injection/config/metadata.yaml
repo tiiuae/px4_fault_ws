@@ -1,0 +1,119 @@
+sensors:
+  - name: "accelerometer"
+    msg_type: "px4_msgs/msg/SensorAccel"
+    link: "https://docs.px4.io/main/en/msg_docs/SensorAccel.html"
+    struct:
+      timestamp:
+        unit: "microseconds"
+        description: "time since system start."
+      timestamp_sample:
+        unit: "microseconds"
+        description: "N/A"
+      device_id:
+        unit: "N/A"
+        description: "unique device ID for the sensor that does not change between power cycles"
+      x:
+        unit: "m/s^2"
+        description: "acceleration in the FRD board frame X-axis"
+      y:
+        unit: "m/s^2"
+        description: "acceleration in the FRD board frame Y-axis"
+      z:
+        unit: "m/s^2"
+        description: "acceleration in the FRD board frame Z-axis"
+      temperature:
+        unit: "degrees Celcius"
+        description: "sensor temperature"
+      error_count:
+        unit: "N/A"
+        description: "N/A"
+      clip_counter:
+        unit: "N/A"
+        description: "clip count per axis in the sample period"
+      samples:
+        unit: "N/A"
+        description: "number of raw samples that went into this message"
+  - name: "gyroscope"
+    msg_type: "px4_msgs/msg/SensorGyro"
+    link: "https://docs.px4.io/main/en/msg_docs/SensorGyro.html"
+    struct:
+      timestamp:
+        unit: "microseconds"
+        description: "time since system start."
+      timestamp_sample:
+        unit: "microseconds"
+        description: "N/A"
+      device_id:
+        unit: "N/A"
+        description: "unique device ID for the sensor that does not change between power cycles"
+      x:
+        unit: "rad/s"
+        description: "angular velocity in the FRD board frame X-axis"
+      y:
+        unit: "rad/s"
+        description: "angular velocity in the FRD board frame Y-axis"
+      z:
+        unit: "rad/s"
+        description: "angular velocity in the FRD board frame Z-axis"
+      temperature:
+        unit: "degrees Celcius"
+        description: "sensor temperature"
+      error_count:
+        unit: "N/A"
+        description: "N/A"
+      clip_counter:
+        unit: "N/A"
+        description: "clip count per axis in the sample period"
+      samples:
+        unit: "N/A"
+        description: "number of raw samples that went into this message"
+  - name: "magnetometer"
+    msg_type: "px4_msgs/msg/SensorMag"
+    link: "https://docs.px4.io/main/en/msg_docs/SensorMag.html"
+    struct:
+      timestamp:
+        unit: "microseconds"
+        description: "time since system start."
+      timestamp_sample:
+        unit: "microseconds"
+        description: "N/A"
+      device_id:
+        unit: "N/A"
+        description: "unique device ID for the sensor that does not change between power cycles"
+      x:
+        unit: "Gauss"
+        description: "magnetic field in the FRD board frame X-axis"
+      y:
+        unit: "Gauss"
+        description: "magnetic field in the FRD board frame Y-axis"
+      z:
+        unit: "Gauss"
+        description: "magnetic field in the FRD board frame Z-axis"
+      temperature:
+        unit: "degrees Celcius"
+        description: "sensor temperature"
+      error_count:
+        unit: "N/A"
+        description: "N/A"
+  - name: "barometer"
+    msg_type: "px4_msgs/msg/SensorBaro"
+    link: "https://docs.px4.io/main/en/msg_docs/SensorBaro.html"
+    struct:
+      timestamp:
+        unit: "microseconds"
+        description: "time since system start."
+      timestamp_sample:
+        unit: "microseconds"
+        description: "N/A"
+      device_id:
+        unit: "N/A"
+        description: "unique device ID for the sensor that does not change between power cycles"
+      pressure:
+        unit: "Pascals"
+        description: "static pressure measurement"
+      temperature:
+        unit: "degrees Celcius"
+        description: "sensor temperature"
+      error_count:
+        unit: "N/A"
+        description: "N/A"

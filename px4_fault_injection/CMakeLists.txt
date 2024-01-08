@@ -25,6 +25,7 @@ install(PROGRAMS
   scripts/drone_state_monitor.py
   scripts/mission_manager.py
   scripts/fault_manager.py
+  scripts/data_merger.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

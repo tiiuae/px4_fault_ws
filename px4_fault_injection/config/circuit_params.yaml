@@ -1,46 +1,45 @@
 # EDITABLE
-boundaries:
+boundaries:           # Defines limits of workable area
   north_south:
-    lower: -5.0 #UNIT Metres
-    upper: 5.0 #UNIT Metres
+    lower: -5.0       # EDITABLE | UNIT Metres
+    upper: 5.0        # EDITABLE | UNIT Metres
   east_west:
-    lower: -5.0 #UNIT Metres
-    upper: 5.0 #UNIT Metres
-  altitude: # Negative values because positive is downwards
-    lower: -2.0 #UNIT Metres
-    upper: -5.0 #UNIT Metres
-  yaw:
-    lower: -180 #UNIT Degrees
-    upper: 180 #UNIT Degrees
-number_of_waypoints:
-  lower: 2
-  upper: 10
-iterations: 2
-duration_for_faults: [1, 5] #UNIT Seconds
-duration_between_faults: [1, 5] #UNIT Seconds
-time_to_fault_start: [1, 5] #UNIT Seconds
-# SELECTIVELY EDITABLE VALUES BETWEEN #!--
+    lower: -5.0       # EDITABLE | UNIT Metres
+    upper: 5.0        # EDITABLE | UNIT Metres
+  altitude:           # Negative values because positive is downwards
+    lower: -2.0       # EDITABLE | UNIT Metres
+    upper: -5.0       # EDITABLE | UNIT Metres
+  yaw:                # Refers to the oriention of the drone (i.e. where it is looking at)
+    lower: -180       # EDITABLE | UNIT Degrees
+    upper: 180        # EDITABLE | UNIT Degrees
+number_of_waypoints:  # How many through-points are required in each iteration of the mission
+  lower: 2            # EDITABLE
+  upper: 10           # EDITABLE
+iterations: 2         # EDITABLE | How many iterations in the mission
+duration_for_faults: [1, 5]     # EDITABLE | UNIT Seconds | How long the faults can last for
+duration_between_faults: [1, 5] # EDITABLE | UNIT Seconds | Duration between successive faults
+time_to_fault_start: [1, 5]     # EDITABLE | UNIT Seconds | How long before faults start in each iteration
 sensors:
   #--------------------------------
   - module_name: "accelerometer"
-    root: "SENS_ACCEL"
-    record: True
+    root: "SENS_ACCEL"                      # Sensor parameter preamble in flight controller 
+    record: True                            # EDITABLE | Want to record this sensor stream or not
     data_type: px4_msgs.msg/SensorAccel
     topic_name: "/fmu/out/sensor_accel"
     faults:
   #!--------------------------------
       - type: "gaussian_noise._NOISE"
-        active: True                 # EDITABLE
-        vals: [0.0, 0.1]              # EDITABLE | Standard deviation of a normal distribution. 
+        active: True                        # EDITABLE
+        vals: [0.0, 0.1]                    # EDITABLE | Standard deviation of a normal distribution. 
       - type: "bias_shift._SHIF"
-        active: False                  # EDITABLE
-        vals: [0.0, 0.0]             # EDITABLE | Percentage (written as decimal) of shift in actual value.
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as decimal) of shift in actual value.
       - type: "bias_scale._SCAL"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE | Scalar multiplier to scale actual value.
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Scalar multiplier to scale actual value.
       - type: "drift._DRIFT"
-        active: False                  # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
   #!--------------------------------
   - module_name: "gyroscope"
     root: "SENS_GYRO"
@@ -50,17 +49,17 @@ sensors:
     faults:
   #!--------------------------------
       - type: "gaussian_noise._NOISE"
-        active: True                 # EDITABLE
-        vals: [0.0, 0.1]              # EDITABLE 
+        active: True                        # EDITABLE
+        vals: [0.0, 0.1]                    # EDITABLE | Standard deviation of a normal distribution. 
       - type: "bias_shift._SHIF"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as decimal) of shift in actual value.
       - type: "bias_scale._SCAL"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Scalar multiplier to scale actual value.
       - type: "drift._DRIFT"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
   #!--------------------------------
   - module_name: "magnetometer"
     root: "SENS_MAG"
@@ -70,17 +69,17 @@ sensors:
     faults:
   #!--------------------------------
       - type: "gaussian_noise._NOISE"
-        active: True                 # EDITABLE
-        vals: [0.0, 0.1]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Standard deviation of a normal distribution. 
       - type: "bias_shift._SHIF"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as decimal) of shift in actual value.
       - type: "bias_scale._SCAL"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Scalar multiplier to scale actual value.
       - type: "drift._DRIFT"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
   #!--------------------------------
   - module_name: "barometer"
     root: "SENS_BARO"
@@ -90,15 +89,15 @@ sensors:
     faults:
   #!--------------------------------
       - type: "gaussian_noise._NOISE"
-        active: True                 # EDITABLE
-        vals: [0.0, 0.1]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Standard deviation of a normal distribution. 
       - type: "bias_shift._SHIF"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as decimal) of shift in actual value.
       - type: "bias_scale_SCAL"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Scalar multiplier to scale actual value.
       - type: "drift._DRIFT"
-        active: False                 # EDITABLE
-        vals: [0.0, 0.0]              # EDITABLE
+        active: False                       # EDITABLE
+        vals: [0.0, 0.0]                    # EDITABLE | Percentage (written as percent) of increase w.r.t. to original value with each timestep.
   #--------------------------------
