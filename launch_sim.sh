@@ -13,7 +13,7 @@ tmux send-keys -t $SESSION_NAME 'MicroXRCEAgent udp4 -p 8888' C-m
 echo "tmux session $SESSION_NAME activated."
 
 # Launch sequence for the simulation
-echo "Launching missoin sequence..."
+echo "Launching mission sequence..."
 ros2 run px4_fault_injection drone_controller.py &
 sleep 2
 ros2 run px4_fault_injection simulation_manager.py &
@@ -22,7 +22,8 @@ ros2 run px4_fault_injection drone_state_monitor.py &
 ros2 run px4_fault_injection sensor_recorder_unsync.py &
 ros2 run px4_fault_injection mission_manager.py &
 ros2 run px4_fault_injection iteration_runner.py &
-ros2 run px4_fault_injection fault_manager.py
+ros2 run px4_fault_injection fault_manager.py &
+ros2 run px4_fault_injection data_merger.py
 wait
 
 # Close all active tmux sessions when the simulation is terminated.
