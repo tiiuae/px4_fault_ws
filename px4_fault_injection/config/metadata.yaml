@@ -14,16 +14,16 @@ sensors:
         description: "unique device ID for the sensor that does not change between power cycles"
       x:
         unit: "m/s^2"
-        description: "acceleration in the FRD board frame X-axis"
+        description: "acceleration_x_axis"
       y:
         unit: "m/s^2"
-        description: "acceleration in the FRD board frame Y-axis"
+        description: "acceleration_y_axis"
       z:
         unit: "m/s^2"
-        description: "acceleration in the FRD board frame Z-axis"
+        description: "acceleration_z_axis"
       temperature:
-        unit: "degrees Celcius"
-        description: "sensor temperature"
+        unit: "Celcius"
+        description: "sensor_temperature"
       error_count:
         unit: "N/A"
         description: "N/A"
@@ -48,16 +48,16 @@ sensors:
         description: "unique device ID for the sensor that does not change between power cycles"
       x:
         unit: "rad/s"
-        description: "angular velocity in the FRD board frame X-axis"
+        description: "angular_velocity_x_axis"
       y:
         unit: "rad/s"
-        description: "angular velocity in the FRD board frame Y-axis"
+        description: "angular_velocity_y_axis"
       z:
         unit: "rad/s"
-        description: "angular velocity in the FRD board frame Z-axis"
+        description: "angular_velocity_z_axis"
       temperature:
-        unit: "degrees Celcius"
-        description: "sensor temperature"
+        unit: "Celcius"
+        description: "sensor_temperature"
       error_count:
         unit: "N/A"
         description: "N/A"
@@ -82,16 +82,16 @@ sensors:
         description: "unique device ID for the sensor that does not change between power cycles"
       x:
         unit: "Gauss"
-        description: "magnetic field in the FRD board frame X-axis"
+        description: "magnetic_field_x_axis"
       y:
         unit: "Gauss"
-        description: "magnetic field in the FRD board frame Y-axis"
+        description: "magnetic_field_y_axis"
       z:
         unit: "Gauss"
-        description: "magnetic field in the FRD board frame Z-axis"
+        description: "magnetic_field_z_axis"
       temperature:
-        unit: "degrees Celcius"
-        description: "sensor temperature"
+        unit: "Celcius"
+        description: "sensor_temperature"
       error_count:
         unit: "N/A"
         description: "N/A"
@@ -110,10 +110,10 @@ sensors:
         description: "unique device ID for the sensor that does not change between power cycles"
       pressure:
         unit: "Pascals"
-        description: "static pressure measurement"
+        description: "static_pressure_measurement"
       temperature:
-        unit: "degrees Celcius"
-        description: "sensor temperature"
+        unit: "Celcius"
+        description: "sensor_temperature"
       error_count:
         unit: "N/A"
         description: "N/A"

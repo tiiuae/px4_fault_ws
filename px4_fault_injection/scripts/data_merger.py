@@ -5,13 +5,44 @@ from rclpy.node import Node
 import os
 import pandas as pd
 from std_msgs.msg import String
+import yaml
+from ament_index_python.packages import get_package_share_directory
 
 
 class DataMergerSubscriber(Node):
     def __init__(self):
         super().__init__("data_merger_subscriber")
         self.subscriber = self.create_subscription(String, "merge_target_directory", self.directory_callback, 10)
+
+        self.mission_params = None
+        config_path = get_package_share_directory(
+            "px4_fault_injection") + "/config/circuit_params.yaml"
+        try:
+            with open(config_path, 'r') as yaml_file:
+                self.mission_params = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as e:
+            self.get_logger().error(f"Error reading YAML file: {e}.")
+
+        self.metadata = None
+        config_path = get_package_share_directory(
+            "px4_fault_injection") + "/config/metadata.yaml"
+        try:
+            with open(config_path, 'r') as yaml_file:
+                self.metadata = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as e:
+            self.get_logger().error(f"Error reading YAML file: {e}.")
+
+        self.fault_label_descriptors = None
+        config_path = get_package_share_directory(
+            "px4_fault_injection") + "/config/fault_label_descriptors.yaml"
+        try:
+            with open(config_path, 'r') as yaml_file:
+                self.fault_label_descriptors = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as e:
+            self.get_logger().error(f"Error reading YAML file: {e}.")
+
         self.forbidden_list = ["clip_counter", "temperature", "timestamp_sample", "samples", "error_count"]
+        self.ignore_list = ["timestamp", "device_id"]
 
     def directory_callback(self, msg):
         directory_path = msg.data
@@ -46,6 +77,7 @@ class DataMergerSubscriber(Node):
         timestamps = df_result[["timestamp"]]
         full_merge = pd.merge(timestamps, faults_df, on='timestamp', how='outer')
         full_merge.sort_values(by='timestamp', inplace=True)
+        full_merge = self.populate_inactive_faults(full_merge)
 
         # Finally merge the faults with the sensor datas
         first = full_merge['timestamp'][0]
@@ -55,7 +87,8 @@ class DataMergerSubscriber(Node):
         full_merge = pd.merge(df_result, full_merge, on='timestamp', how='outer')
         full_merge.sort_values(by='timestamp', inplace=True)
 
-        self.drop_columns(full_merge)
+        full_merge = self.drop_columns(full_merge)
+        full_merge = self.rename_headers(full_merge)
 
         if preempted:
             out_file_name = "merged_preempted.csv"
@@ -70,9 +103,49 @@ class DataMergerSubscriber(Node):
 
         self.get_logger().info(f"Data merged successfully into {output_csv_path}")
 
-    def populate_inactive_faults(input_df):
-        output_df = input_df
-        return output_df
+    def rename_headers(self, input_df):
+        if self.metadata is None or self.fault_label_descriptors is None:
+            self.get_logger().error("Label descriptor files are missing.")
+            return
+
+        for column in input_df.columns:
+            try:
+                heading, name = column.split("|")
+                for sensor in self.metadata['sensors']:
+                    if sensor['name'] == name and heading not in self.ignore_list:
+                        input_df = input_df.rename(columns={
+                                                   column: f"{sensor['struct'][heading]['description']}|{sensor['struct'][heading]['unit']}|{name}"
+                                                   })
+            except ValueError:
+                pass
+            try:
+                item, name, fault_type = column.split("_")
+                if item == "SENS":
+                    for sensor in self.fault_label_descriptors['sensors']:
+                        if name == sensor['label']:
+                            for fault in sensor['type']:
+                                if fault_type == fault['label']:
+                                    input_df = input_df.rename(columns={
+                                        column: f"{fault['description']}|{sensor['name']}"
+                                    })
+            except ValueError:
+                pass
+        return input_df
+
+    def populate_inactive_faults(self, input_df):
+        if self.mission_params is None:
+            self.get_logger().error("Mission parameter file missing.")
+            return
+
+        for sensor in self.mission_params['sensors']:
+            root = sensor["root"]
+            for fault_type in sensor["faults"]:
+                fault_type, label = fault_type['type'].split('.')
+                if root + label not in input_df.columns:
+                    input_df[root + label] = 0.0
+                else:
+                    continue
+        return input_df
 
     def drop_columns(self, input_df):
         for header in list(input_df.columns):
