@@ -12,9 +12,7 @@ echo "Building PX4-Autopilot"
 bash ./PX4-Autopilot/Tools/setup/ubuntu.sh --no-nuttx
 echo "Build complete"
 
-echo "Pulling Simulation repository"
-mkdir -p ~/px4_fault_ws
-git clone --recursive https://github.com/juniorsundar-tii/px4_fault_ws.git ~/px4_fault_ws
+echo "Setting up Simulation repository"
 cd ~/px4_fault_ws || exit
 mkdir -p src
 
