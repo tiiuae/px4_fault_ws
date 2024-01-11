@@ -39,6 +39,7 @@ class FaultManager(Node):
         self.iter_state = self.create_subscription(String, '/iteration/state', self._iter_state_update, qos)
         self.sim_state = self.create_subscription(String, '/gazebo/state', self._sim_state_update, qos)
 
+        self.clean_data_pub = self.create_publisher(String, '/merge_target_directory', 10)
         self.param_float_pub = self.create_publisher(String, "/drone_controller/set_param_float", 1)
         self.param_int_pub = self.create_publisher(String, "/drone_controller/set_param_int", 1)
 
@@ -226,6 +227,9 @@ class FaultManager(Node):
 
         with open(f'{self.folder_name}/iteration_{self.current_interation}/faults.csv', 'w') as f:
             f.write(self.out_string)
+
+        # DATA MERGING AND PREPROCESSING TRIGGER
+        self.clean_data_pub.publish(String(data=f'{self.folder_name}/iteration_{self.current_interation}'))
 
         self.out_string = ""
         self.header = ""
