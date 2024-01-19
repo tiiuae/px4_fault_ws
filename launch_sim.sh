@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Update the installation
-colcon build --packages-select px4_fault_injection
 # Source the ros workspace
 source install/local_setup.bash
 
