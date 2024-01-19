@@ -43,7 +43,7 @@ sensors:
   #!--------------------------------
   - module_name: "gyroscope"
     root: "SENS_GYRO"
-    record: True
+    record: True                            # EDITABLE | Want to record this sensor stream or not
     data_type: px4_msgs.msg/SensorGyro
     topic_name: "/fmu/out/sensor_gyro"
     faults:
@@ -63,7 +63,7 @@ sensors:
   #!--------------------------------
   - module_name: "magnetometer"
     root: "SENS_MAG"
-    record: True
+    record: True                            # EDITABLE | Want to record this sensor stream or not
     data_type: px4_msgs.msg/SensorMag
     topic_name: "/fmu/out/sensor_mag"
     faults:
@@ -83,7 +83,7 @@ sensors:
   #!--------------------------------
   - module_name: "barometer"
     root: "SENS_BARO"
-    record: True
+    record: True                            # EDITABLE | Want to record this sensor stream or not
     data_type: px4_msgs.msg/SensorBaro
     topic_name: "/fmu/out/sensor_baro"
     faults:
