@@ -9,12 +9,12 @@ If this isn't done, please follow the instructions [here](https://docs.ros.org/e
 mkdir -p ~/px4_fault_ws
 git clone --recursive https://github.com/juniorsundar-tii/px4_fault_ws.git ~/px4_fault_ws
 cd ~/px4_fault_ws/
-chmod +x *.sh
-./build.sh
+chmod +x ./scripts/*.sh
+./scripts/build.sh
 ```
 
 ## Execution
 
 ```
-./launch_sim.sh
+./scripts/launch_sim.sh
 ```
